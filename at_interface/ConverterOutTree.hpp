@@ -87,6 +87,8 @@ class ConverterOutTree : public AnalysisTree::Task {
   float chi2topo_{-1.f};
   float costopo_{-1.f};
   float L_{-1.f}, LdL_{-1.f}, distance_pv_line_{-1.f};
+  float armenterus_angle_{-1.f};
+  float armenterus_pt_{-1.f};
 
   float mass_mc_, px_mc_, py_mc_, pz_mc_;
   int generation_{-1};

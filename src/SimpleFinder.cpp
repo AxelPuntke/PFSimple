@@ -346,6 +346,61 @@ void SimpleFinder::CalculateSecondaryVertex() {
     sec_vx_.at(i) = (params_[0].at(kX + i) + params_[1].at(kX + i)) / 2;
 }
 
+void SimpleFinder::CalculateArmenterusPodolanski(const KFParticleSIMD& mother, const KFParticle& daughtertrack1, const KFParticle& daughtertrack2) {
+  const float mother_px = mother.GetPx()[0];
+  const float mother_py = mother.GetPy()[0];
+  const float mother_pz = mother.GetPz()[0];
+  
+  const KFParticle& daughtertrackPos = (daughtertrack1.Q() > daughtertrack2.Q() ? daughtertrack1 : daughtertrack2);
+  const KFParticle& daughtertrackNeg = (daughtertrack1.Q() > daughtertrack2.Q() ? daughtertrack2 : daughtertrack1);
+  
+  const float pos_px = daughtertrackPos.Px();
+  const float pos_py = daughtertrackPos.Py();
+  const float pos_pz = daughtertrackPos.Pz();
+  
+  const float neg_px = daughtertrackNeg.Px();
+  const float neg_py = daughtertrackNeg.Py();
+  const float neg_pz = daughtertrackNeg.Pz();
+  
+  // Calculate magnitudes
+  float magMother = std::sqrt(mother_px * mother_px + mother_py * mother_py + mother_pz * mother_pz);
+
+  // Calculate dot products
+  float dotProdPos = (pos_px * mother_px + pos_py * mother_py + pos_pz * mother_pz);
+  float dotProdNeg = (neg_px * mother_px + neg_py * mother_py + neg_pz * mother_pz);
+
+  // Calculate parallel components
+  float pos_parallel_px = (dotProdPos / (magMother * magMother)) * mother_px;
+  float pos_parallel_py = (dotProdPos / (magMother * magMother)) * mother_py;
+  float pos_parallel_pz = (dotProdPos / (magMother * magMother)) * mother_pz;
+
+  float neg_parallel_px = (dotProdNeg / (magMother * magMother)) * mother_px;
+  float neg_parallel_py = (dotProdNeg / (magMother * magMother)) * mother_py;
+  float neg_parallel_pz = (dotProdNeg / (magMother * magMother)) * mother_pz;
+
+  // Calculate antiparallel components
+  float pos_antiparallel_px = pos_px - pos_parallel_px;
+  float pos_antiparallel_py = pos_py - pos_parallel_py;
+  float pos_antiparallel_pz = pos_pz - pos_parallel_pz;
+
+  //float neg_antiparallel_px = neg_px - neg_parallel_px;
+  //float neg_antiparallel_py = neg_py - neg_parallel_py;
+  //float neg_antiparallel_pz = neg_pz - neg_parallel_pz;
+  
+  //Calculate final values for the angle
+  float pos_pL = std::sqrt(pos_parallel_px*pos_parallel_px + pos_parallel_py*pos_parallel_py + pos_parallel_pz*pos_parallel_pz);
+  float neg_pL = std::sqrt(neg_parallel_px*neg_parallel_px + neg_parallel_py*neg_parallel_py + neg_parallel_pz*neg_parallel_pz);
+  
+  //calculate angle
+  float alpha = (pos_pL - neg_pL)/(pos_pL + neg_pL);
+  
+  // calculate pT (negative and positive pT should always be the same)
+  float pT = std::sqrt(pos_antiparallel_px*pos_antiparallel_px + pos_antiparallel_py*pos_antiparallel_py + pos_antiparallel_pz*pos_antiparallel_pz);
+  
+  values_.armenterus_angle = alpha;
+  values_.armenterus_pt = pT;
+}
+
 void SimpleFinder::ReconstructDecay(const Decay& decay) {
 
   std::vector<std::vector<int>> indexes{};
@@ -392,6 +447,8 @@ void SimpleFinder::ReconstructDecay(const Decay& decay) {
         if (!IsGoodDecayLength(kf_mother, decay.GetMother())) continue;
         if (!IsGoodCos(kf_mother, decay)) continue;
 
+        CalculateArmenterusPodolanski(kf_mother, track.at(0), track.at(1));
+        
         FillDaughtersInfo({track.at(0), track.at(1)}, pdgs);
         SaveParticle(kf_mother, decay);
 

@@ -50,6 +50,11 @@ void ConverterOut::CopyParticle(const OutputContainer& kf_particle, AnalysisTree
   particle.SetField(kf_particle.GetLdL(), chi2geo_field_id_ + 3);
   particle.SetField(kf_particle.GetChi2Topo(0), chi2geo_field_id_ + 4);
   particle.SetField(kf_particle.GetCosineTopo(0), chi2geo_field_id_ + 5);
+  
+  if (decay_.GetNDaughters() == 2) {
+    particle.SetField(kf_particle.GetArmenterusPodolanskiAngle(), armenterus_angle_field_id_);
+    particle.SetField(kf_particle.GetArmenterusPodolanskiPT(), armenterus_pt_field_id_);
+  }
 }
 
 void ConverterOut::Exec() {
@@ -126,6 +131,8 @@ void ConverterOut::Init() {
     out_particles.AddFields<float>({"chi2_prim_first", "chi2_prim_second"}, "");
     out_particles.AddField<float>("distance", "Distance between the particles, cm");
     out_particles.AddFields<float>({"cosine_first", "cosine_second"}, "Cos between mother and daughter particle");
+    out_particles.AddFields<float>({"armenterus_angle"}, "Armenterus-Podolanski angle");
+    out_particles.AddFields<float>({"armenterus_pt"}, "Armenterus-Podolanski p_T");
   }
 
   out_particles.AddFields<float>({"chi2_geo", "cosopen", "l", "l_over_dl", "chi2_topo", "cosine_topo"}, "");
@@ -238,6 +245,9 @@ void ConverterOut::InitIndexes() {
   cosine_topo_sm_field_id_ = out_branch_reco.GetFieldId("cosine_topo_sm1");
 
   chi2geo_field_id_ = out_branch_reco.GetFieldId("chi2_geo");
+  
+  armenterus_angle_field_id_ = out_branch_reco.GetFieldId("armenterus_angle");
+  armenterus_pt_field_id_ = out_branch_reco.GetFieldId("armenterus_pt");
 }
 
 std::pair<int, int> ConverterOut::DetermineDaughtersMCStatus(const int daughter_rec_id, const Pdg_t mother_expected_pdg) const {

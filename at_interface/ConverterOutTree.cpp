@@ -64,6 +64,8 @@ void ConverterOutTree::CopyParticle(const OutputContainer& kf_particle) {
   L_ = kf_particle.GetL();
   LdL_ = kf_particle.GetLdL();
   distance_pv_line_ = kf_particle.GetDistanceToPVLine();
+  armenterus_angle_ = kf_particle.GetArmenterusPodolanskiAngle();
+  armenterus_pt_ = kf_particle.GetArmenterusPodolanskiPT();
 }
 
 void ConverterOutTree::Exec() {
@@ -152,6 +154,8 @@ void ConverterOutTree::Init() {
   out_reco_->Branch("L", &L_, "L_/F");
   out_reco_->Branch("LdL", &LdL_, "LdL_/F");
   out_reco_->Branch("distance_pv_line", &distance_pv_line_, "distance_pv_line_/F");
+  out_reco_->Branch("armenterus_angle", &armenterus_angle_, "armenterus_angle_/F");
+  out_reco_->Branch("armenterus_pt", &armenterus_pt_, "armenterus_pt_/F");
 
   if (mc_particles_) {
     out_reco_->Branch("generation", &generation_, "generation_/I");

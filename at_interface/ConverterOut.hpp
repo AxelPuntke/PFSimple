@@ -101,6 +101,9 @@ class ConverterOut : public AnalysisTree::Task {
   int cosine_topo_sm_field_id_{-1};
 
   bool is_detailed_bg_{false};
+  
+  int armenterus_angle_field_id_{-1};
+  int armenterus_pt_field_id_{-1};
 };
 
 #endif//KFPARTICLESIMPLE_ANALYSISTREEINTERFACE_CONVERTEROUT_H_
