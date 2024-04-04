@@ -102,8 +102,8 @@ class ConverterOut : public AnalysisTree::Task {
 
   bool is_detailed_bg_{false};
   
-  int armenterus_angle_field_id_{-1};
-  int armenterus_pt_field_id_{-1};
+  int armenteros_angle_field_id_{-1};
+  int armenteros_pt_field_id_{-1};
 };
 
 #endif//KFPARTICLESIMPLE_ANALYSISTREEINTERFACE_CONVERTEROUT_H_

@@ -95,7 +95,7 @@ class SimpleFinder {
   float CalculateDistanceBetweenParticles();
   float CalculateDistanceToSV() const;
   float CalculateCosOpen(const int id_daughter_1, const int id_daughter_2) const;
-  void CalculateArmenterusPodolanski(const KFParticleSIMD& mother, const KFParticle& daughtertrack1, const KFParticle& daughtertrack2);
+  void CalculateArmenterosPodolanski(const KFParticleSIMD& mother, const KFParticle& daughtertrack1, const KFParticle& daughtertrack2);
 
   void FillDaughtersInfo(const std::vector<KFParticle>& tracks, const std::vector<Pdg_t>& pdgs);
   void SaveParticle(KFParticleSIMD& particle_simd, const Decay& decay);

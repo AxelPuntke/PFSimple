@@ -346,7 +346,7 @@ void SimpleFinder::CalculateSecondaryVertex() {
     sec_vx_.at(i) = (params_[0].at(kX + i) + params_[1].at(kX + i)) / 2;
 }
 
-void SimpleFinder::CalculateArmenterusPodolanski(const KFParticleSIMD& mother, const KFParticle& daughtertrack1, const KFParticle& daughtertrack2) {
+void SimpleFinder::CalculateArmenterosPodolanski(const KFParticleSIMD& mother, const KFParticle& daughtertrack1, const KFParticle& daughtertrack2) {
   const float mother_px = mother.GetPx()[0];
   const float mother_py = mother.GetPy()[0];
   const float mother_pz = mother.GetPz()[0];
@@ -397,8 +397,8 @@ void SimpleFinder::CalculateArmenterusPodolanski(const KFParticleSIMD& mother, c
   // calculate pT (negative and positive pT should always be the same)
   float pT = std::sqrt(pos_antiparallel_px*pos_antiparallel_px + pos_antiparallel_py*pos_antiparallel_py + pos_antiparallel_pz*pos_antiparallel_pz);
   
-  values_.armenterus_angle = alpha;
-  values_.armenterus_pt = pT;
+  values_.armenteros_angle = alpha;
+  values_.armenteros_pt = pT;
 }
 
 void SimpleFinder::ReconstructDecay(const Decay& decay) {
@@ -447,7 +447,7 @@ void SimpleFinder::ReconstructDecay(const Decay& decay) {
         if (!IsGoodDecayLength(kf_mother, decay.GetMother())) continue;
         if (!IsGoodCos(kf_mother, decay)) continue;
 
-        CalculateArmenterusPodolanski(kf_mother, track.at(0), track.at(1));
+        CalculateArmenterosPodolanski(kf_mother, track.at(0), track.at(1));
         
         FillDaughtersInfo({track.at(0), track.at(1)}, pdgs);
         SaveParticle(kf_mother, decay);
