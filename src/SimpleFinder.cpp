@@ -1,5 +1,6 @@
 #include "SimpleFinder.hpp"
 #include <KFParticleSIMD.h>
+#include <KFParticleDatabase.h>
 
 void SimpleFinder::Init(std::vector<KFParticle>&& tracks, const KFVertex& pv) {
   tracks_ = tracks;
@@ -346,7 +347,7 @@ void SimpleFinder::CalculateSecondaryVertex() {
     sec_vx_.at(i) = (params_[0].at(kX + i) + params_[1].at(kX + i)) / 2;
 }
 
-void SimpleFinder::CalculateArmenterosPodolanski(const KFParticleSIMD& mother, const KFParticle& daughtertrack1, const KFParticle& daughtertrack2) {
+void SimpleFinder::CalculateArmenterosPodolanski(const KFParticleSIMD& mother, Pdg_t pdg_mother, const KFParticle& daughtertrack1, const KFParticle& daughtertrack2) {
   const float mother_px = mother.GetPx()[0];
   const float mother_py = mother.GetPy()[0];
   const float mother_pz = mother.GetPz()[0];
@@ -387,18 +388,52 @@ void SimpleFinder::CalculateArmenterosPodolanski(const KFParticleSIMD& mother, c
   //float neg_antiparallel_py = neg_py - neg_parallel_py;
   //float neg_antiparallel_pz = neg_pz - neg_parallel_pz;
   
-  //Calculate final values for the angle
+  //Calculate final values for the alpha
   float pos_pL = std::sqrt(pos_parallel_px*pos_parallel_px + pos_parallel_py*pos_parallel_py + pos_parallel_pz*pos_parallel_pz);
   float neg_pL = std::sqrt(neg_parallel_px*neg_parallel_px + neg_parallel_py*neg_parallel_py + neg_parallel_pz*neg_parallel_pz);
   
-  //calculate angle
+  //calculate alpha
   float alpha = (pos_pL - neg_pL)/(pos_pL + neg_pL);
   
   // calculate pT (negative and positive pT should always be the same)
   float pT = std::sqrt(pos_antiparallel_px*pos_antiparallel_px + pos_antiparallel_py*pos_antiparallel_py + pos_antiparallel_pz*pos_antiparallel_pz);
   
-  values_.armenteros_angle = alpha;
+  //calculate armenteros-variables in polar coordinates (PhD thesis Simon Spies)
+  //if (alpha < 0.49 || alpha > 0.51) return;
+  //if (pT < 0 || pT > 0.01) return;
+  
+  float massMotherPDG, massMotherPDGSigma;
+  //const int pdg_mother = mother.PDG()[0]; //returns always 0
+  KFParticleDatabase::Instance()->GetMotherMass(pdg_mother, massMotherPDG, massMotherPDGSigma);
+  
+  float massPosPDG = KFParticleDatabase::Instance()->GetMass(daughtertrackPos.GetPDG());
+  float massNegPDG = KFParticleDatabase::Instance()->GetMass(daughtertrackNeg.GetPDG());
+  
+  //printf("mother pdg: %d, mass: %f; pos pdg: %d, mass: %f; neg pdg: %d, mass: %f\n", pdg_mother, massMotherPDG, daughtertrackPos.GetPDG(), massPosPDG, daughtertrackNeg.GetPDG(), massNegPDG);
+  
+  float x = (massMotherPDG*massMotherPDG + massPosPDG*massPosPDG - massNegPDG*massNegPDG)/(2.0*massMotherPDG);
+  float p_cms = std::sqrt( x*x - massPosPDG*massPosPDG);
+  
+  float a_0 = (massPosPDG*massPosPDG - massNegPDG*massNegPDG)/(massMotherPDG*massMotherPDG); //checked!
+  
+  float r_alpha = 2.0*p_cms/massMotherPDG; //checked!
+  
+  //printf("p_cms: %f, a_0: %f, r_alpha: %f\n", p_cms, a_0, r_alpha);
+  
+  float u = (alpha - a_0)/r_alpha;
+  //float r_alpha_orthogonal = std::sqrt( u*u + ((pT*pT)/(p_cms*p_cms)) )*p_cms; //multiplied by p_cms [different in S. Spies thesis]
+  float r_alpha_orthogonal = std::sqrt( u*u + ((pT*pT)/(p_cms*p_cms)) );
+  //printf("u*u: %f, ((pT*pT)/(p_cms*p_cms)): %f\n", u*u, ((pT*pT)/(p_cms*p_cms)));
+  
+  //float phi_alpha_orthogonal = std::atan( pT/p_cms * r_alpha/(a_0 - alpha) );
+  float phi_alpha_orthogonal = std::atan2( pT * r_alpha, p_cms*(a_0 - alpha) );
+  
+  values_.armenteros_alpha = alpha;
   values_.armenteros_pt = pT;
+  values_.armenteros_r = r_alpha_orthogonal;
+  values_.armenteros_angle = phi_alpha_orthogonal;
+  
+  //printf("alpha: %f, pt: %f, r: %f, angle: %f, alpha_cart: %f, pt_cart: %f\n", values_.armenteros_alpha, values_.armenteros_pt, values_.armenteros_r, values_.armenteros_angle, values_.armenteros_r*std::cos(values_.armenteros_angle) + a_0, values_.armenteros_r*std::sin(values_.armenteros_angle)); 
 }
 
 void SimpleFinder::ReconstructDecay(const Decay& decay) {
@@ -447,7 +482,7 @@ void SimpleFinder::ReconstructDecay(const Decay& decay) {
         if (!IsGoodDecayLength(kf_mother, decay.GetMother())) continue;
         if (!IsGoodCos(kf_mother, decay)) continue;
 
-        CalculateArmenterosPodolanski(kf_mother, track.at(0), track.at(1));
+        CalculateArmenterosPodolanski(kf_mother, decay.GetMother().GetPdg(), track.at(0), track.at(1));
         
         FillDaughtersInfo({track.at(0), track.at(1)}, pdgs);
         SaveParticle(kf_mother, decay);

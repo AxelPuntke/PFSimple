@@ -52,7 +52,9 @@ void ConverterOut::CopyParticle(const OutputContainer& kf_particle, AnalysisTree
   particle.SetField(kf_particle.GetCosineTopo(0), chi2geo_field_id_ + 5);
   
   if (decay_.GetNDaughters() == 2) {
+    particle.SetField(kf_particle.GetArmenterosPodolanskiR(), armenteros_r_field_id_);
     particle.SetField(kf_particle.GetArmenterosPodolanskiAngle(), armenteros_angle_field_id_);
+    particle.SetField(kf_particle.GetArmenterosPodolanskiAlpha(), armenteros_alpha_field_id_);
     particle.SetField(kf_particle.GetArmenterosPodolanskiPT(), armenteros_pt_field_id_);
   }
 }
@@ -131,7 +133,9 @@ void ConverterOut::Init() {
     out_particles.AddFields<float>({"chi2_prim_first", "chi2_prim_second"}, "");
     out_particles.AddField<float>("distance", "Distance between the particles, cm");
     out_particles.AddFields<float>({"cosine_first", "cosine_second"}, "Cos between mother and daughter particle");
+    out_particles.AddFields<float>({"armenteros_r"}, "Armenteros-Podolanski r");
     out_particles.AddFields<float>({"armenteros_angle"}, "Armenteros-Podolanski angle");
+    out_particles.AddFields<float>({"armenteros_alpha"}, "Armenteros-Podolanski alpha");
     out_particles.AddFields<float>({"armenteros_pt"}, "Armenteros-Podolanski p_T");
   }
 
@@ -246,7 +250,9 @@ void ConverterOut::InitIndexes() {
 
   chi2geo_field_id_ = out_branch_reco.GetFieldId("chi2_geo");
   
+  armenteros_r_field_id_ = out_branch_reco.GetFieldId("armenteros_r");
   armenteros_angle_field_id_ = out_branch_reco.GetFieldId("armenteros_angle");
+  armenteros_alpha_field_id_ = out_branch_reco.GetFieldId("armenteros_alpha");
   armenteros_pt_field_id_ = out_branch_reco.GetFieldId("armenteros_pt");
 }
 

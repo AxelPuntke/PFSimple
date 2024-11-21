@@ -61,7 +61,9 @@ class OutputContainer {
   [[nodiscard]] float GetLdL() const { return values_.l_over_dl; }
   [[nodiscard]] float GetDistanceToPVLine() const { return values_.distance_pv; }
   [[nodiscard]] float GetCosineTopo(int i) const { return values_.cos_topo[i]; }
+  [[nodiscard]] float GetArmenterosPodolanskiR() const { return values_.armenteros_r; }
   [[nodiscard]] float GetArmenterosPodolanskiAngle() const { return values_.armenteros_angle; }
+  [[nodiscard]] float GetArmenterosPodolanskiAlpha() const { return values_.armenteros_alpha; }
   [[nodiscard]] float GetArmenterosPodolanskiPT() const { return values_.armenteros_pt; }
 
   [[nodiscard]] float GetX() const { return x_; }

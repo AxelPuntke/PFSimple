@@ -102,7 +102,9 @@ class ConverterOut : public AnalysisTree::Task {
 
   bool is_detailed_bg_{false};
   
+  int armenteros_r_field_id_{-1};
   int armenteros_angle_field_id_{-1};
+  int armenteros_alpha_field_id_{-1};
   int armenteros_pt_field_id_{-1};
 };
 
