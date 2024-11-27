@@ -355,13 +355,19 @@ void SimpleFinder::CalculateArmenterosPodolanski(const KFParticleSIMD& mother, P
   const KFParticle& daughtertrackPos = (daughtertrack1.Q() > daughtertrack2.Q() ? daughtertrack1 : daughtertrack2);
   const KFParticle& daughtertrackNeg = (daughtertrack1.Q() > daughtertrack2.Q() ? daughtertrack2 : daughtertrack1);
   
-  const float pos_px = daughtertrackPos.Px();
-  const float pos_py = daughtertrackPos.Py();
-  const float pos_pz = daughtertrackPos.Pz();
+  const   float pos_px = daughtertrackPos.Px();
+  const   float pos_py = daughtertrackPos.Py();
+/*const*/ float pos_pz = daughtertrackPos.Pz();
   
-  const float neg_px = daughtertrackNeg.Px();
-  const float neg_py = daughtertrackNeg.Py();
-  const float neg_pz = daughtertrackNeg.Pz();
+  const   float neg_px = daughtertrackNeg.Px();
+  const   float neg_py = daughtertrackNeg.Py();
+/*const*/ float neg_pz = daughtertrackNeg.Pz();
+  
+  //Lorenz-Boost daughters by beta=0.99 as described in S.Spies thesis:
+  float beta = 0.99;
+  double gamma = 1.0 / std::sqrt(1 - beta * beta);
+  pos_pz = gamma * (pos_pz - beta * daughtertrackPos.GetE());
+  neg_pz = gamma * (neg_pz - beta * daughtertrackNeg.GetE());
   
   // Calculate magnitudes
   float magMother = std::sqrt(mother_px * mother_px + mother_py * mother_py + mother_pz * mother_pz);
@@ -384,6 +390,7 @@ void SimpleFinder::CalculateArmenterosPodolanski(const KFParticleSIMD& mother, P
   float pos_antiparallel_py = pos_py - pos_parallel_py;
   float pos_antiparallel_pz = pos_pz - pos_parallel_pz;
 
+  //commented out, because negative and positive pT should always be the same
   //float neg_antiparallel_px = neg_px - neg_parallel_px;
   //float neg_antiparallel_py = neg_py - neg_parallel_py;
   //float neg_antiparallel_pz = neg_pz - neg_parallel_pz;
@@ -399,33 +406,22 @@ void SimpleFinder::CalculateArmenterosPodolanski(const KFParticleSIMD& mother, P
   float pT = std::sqrt(pos_antiparallel_px*pos_antiparallel_px + pos_antiparallel_py*pos_antiparallel_py + pos_antiparallel_pz*pos_antiparallel_pz);
   
   //calculate armenteros-variables in polar coordinates (PhD thesis Simon Spies)
-  //if (alpha < 0.49 || alpha > 0.51) return;
-  //if (pT < 0 || pT > 0.01) return;
-  
   float massMotherPDG, massMotherPDGSigma;
-  //const int pdg_mother = mother.PDG()[0]; //returns always 0
   KFParticleDatabase::Instance()->GetMotherMass(pdg_mother, massMotherPDG, massMotherPDGSigma);
   
   float massPosPDG = KFParticleDatabase::Instance()->GetMass(daughtertrackPos.GetPDG());
   float massNegPDG = KFParticleDatabase::Instance()->GetMass(daughtertrackNeg.GetPDG());
   
-  //printf("mother pdg: %d, mass: %f; pos pdg: %d, mass: %f; neg pdg: %d, mass: %f\n", pdg_mother, massMotherPDG, daughtertrackPos.GetPDG(), massPosPDG, daughtertrackNeg.GetPDG(), massNegPDG);
-  
   float x = (massMotherPDG*massMotherPDG + massPosPDG*massPosPDG - massNegPDG*massNegPDG)/(2.0*massMotherPDG);
-  float p_cms = std::sqrt( x*x - massPosPDG*massPosPDG);
+  float p_cms = std::sqrt(x*x - massPosPDG*massPosPDG);
   
-  float a_0 = (massPosPDG*massPosPDG - massNegPDG*massNegPDG)/(massMotherPDG*massMotherPDG); //checked!
+  float a_0 = (massPosPDG*massPosPDG - massNegPDG*massNegPDG)/(massMotherPDG*massMotherPDG);
   
-  float r_alpha = 2.0*p_cms/massMotherPDG; //checked!
+  float r_alpha = 2.0*p_cms/massMotherPDG;
   
-  //printf("p_cms: %f, a_0: %f, r_alpha: %f\n", p_cms, a_0, r_alpha);
-  
-  float u = (alpha - a_0)/r_alpha;
-  //float r_alpha_orthogonal = std::sqrt( u*u + ((pT*pT)/(p_cms*p_cms)) )*p_cms; //multiplied by p_cms [different in S. Spies thesis]
+  float u = (alpha - a_0)/r_alpha; //helping variable
   float r_alpha_orthogonal = std::sqrt( u*u + ((pT*pT)/(p_cms*p_cms)) );
-  //printf("u*u: %f, ((pT*pT)/(p_cms*p_cms)): %f\n", u*u, ((pT*pT)/(p_cms*p_cms)));
   
-  //float phi_alpha_orthogonal = std::atan( pT/p_cms * r_alpha/(a_0 - alpha) );
   float phi_alpha_orthogonal = std::atan2( pT * r_alpha, p_cms*(a_0 - alpha) );
   
   values_.armenteros_alpha = alpha;
@@ -433,7 +429,9 @@ void SimpleFinder::CalculateArmenterosPodolanski(const KFParticleSIMD& mother, P
   values_.armenteros_r = r_alpha_orthogonal;
   values_.armenteros_angle = phi_alpha_orthogonal;
   
-  //printf("alpha: %f, pt: %f, r: %f, angle: %f, alpha_cart: %f, pt_cart: %f\n", values_.armenteros_alpha, values_.armenteros_pt, values_.armenteros_r, values_.armenteros_angle, values_.armenteros_r*std::cos(values_.armenteros_angle) + a_0, values_.armenteros_r*std::sin(values_.armenteros_angle)); 
+  //you can convert back to cartesian coordinates (original AP coordinates) using these formulas:
+  //float pT_back = r_alpha_orthogonal * p_cms * std::sin(phi_alpha_orthogonal);
+  //float alpha_back = a_0 + r_alpha * r_alpha_orthogonal * std::cos(phi_alpha_orthogonal) * (phi_alpha_orthogonal < M_PI / 2 ? -1 : 1);
 }
 
 void SimpleFinder::ReconstructDecay(const Decay& decay) {
