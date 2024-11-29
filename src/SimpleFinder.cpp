@@ -431,7 +431,7 @@ void SimpleFinder::CalculateArmenterosPodolanski(const KFParticleSIMD& mother, P
   
   //you can convert back to cartesian coordinates (original AP coordinates) using these formulas:
   //float pT_back = r_alpha_orthogonal * p_cms * std::sin(phi_alpha_orthogonal);
-  //float alpha_back = a_0 + r_alpha * r_alpha_orthogonal * std::cos(phi_alpha_orthogonal) * (phi_alpha_orthogonal < M_PI / 2 ? -1 : 1);
+  //float alpha_back = a_0 - r_alpha * r_alpha_orthogonal * std::cos(phi_alpha_orthogonal);
 }
 
 void SimpleFinder::ReconstructDecay(const Decay& decay) {
