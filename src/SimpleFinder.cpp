@@ -362,13 +362,15 @@ void SimpleFinder::CalculateArmenterosPodolanski(const KFParticleSIMD& mother, P
   const   float neg_px = daughtertrackNeg.Px();
   const   float neg_py = daughtertrackNeg.Py();
 /*const*/ float neg_pz = daughtertrackNeg.Pz();
-  
+
+/*  
   //Lorenz-Boost daughters by beta=0.99 as described in S.Spies thesis:
   float beta = 0.99;
   double gamma = 1.0 / std::sqrt(1 - beta * beta);
   pos_pz = gamma * (pos_pz - beta * daughtertrackPos.GetE());
   neg_pz = gamma * (neg_pz - beta * daughtertrackNeg.GetE());
-  
+*/
+
   // Calculate magnitudes
   float magMother = std::sqrt(mother_px * mother_px + mother_py * mother_py + mother_pz * mother_pz);
 
