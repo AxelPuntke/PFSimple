@@ -69,6 +69,11 @@ class SimpleFinder {
   SelectionValues values_{};///< struct with mother and daughters properties used to apply cuts
 
   std::vector<OutputContainer> output_{};///< output information: vector of candidates
+  
+  float p_cms_;   ///< Required for custom Armenteros-Podolanski variables (S. Spies version)
+  float a_0_;     ///< Required for custom Armenteros-Podolanski variables (S. Spies version)
+  float r_alpha_; ///< Required for custom Armenteros-Podolanski variables (S. Spies version)
+  
 
   /**
   * Find indexes of good daughters
@@ -95,7 +100,8 @@ class SimpleFinder {
   float CalculateDistanceBetweenParticles();
   float CalculateDistanceToSV() const;
   float CalculateCosOpen(const int id_daughter_1, const int id_daughter_2) const;
-  void CalculateArmenterosPodolanski(const KFParticleSIMD& mother, Pdg_t pdg_mother, const KFParticle& daughtertrack1, const KFParticle& daughtertrack2);
+  void InitArmenterosPodolanskiForDecay(const Decay& decay);
+  void CalculateArmenterosPodolanski(const KFParticleSIMD& mother, const KFParticle& daughtertrack1, const KFParticle& daughtertrack2);
 
   void FillDaughtersInfo(const std::vector<KFParticle>& tracks, const std::vector<Pdg_t>& pdgs);
   void SaveParticle(KFParticleSIMD& particle_simd, const Decay& decay);
