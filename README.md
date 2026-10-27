@@ -142,6 +142,18 @@ The cuts that test the mother against the PV, e.g. chi2topo, are inverted for th
 ### output_cuts
 The optional `output_cuts` block contains AnalysisTree field cuts to be applied to the output candidates before storing them to disk. One can either select a certain range for a cut variable with `from` and `to` or select a specific value with `equal`. It is possible to chain several cuts. 
 
+### event_mixing
+The optional `event_mixing` block estimates the combinatorial background by reconstructing candidates from tracks that belong to different events (event mixing). It follows the track-level mixing approach of the `afkf` package: the tracks of a chosen species (`mix_pdg`) are taken from the preceding events and combined with the remaining tracks of the current event. The resulting background candidates are written into a separate `MixedCandidates` branch (cloned from the `Candidates` branch), so that they can be analysed with the same code as the signal candidates.
+
+| Key                | Description                                                                                                                                                              |
+| -------------------| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `enabled`          | Enable/disable event mixing (default: `true` when the block is present)                                                                                                  |
+| `mix_pdg`          | PDG of the track species that is replaced by tracks of previous events (default: `-211`, i.e. the pion of the Lambda decay)                                             |
+| `mix_buffer_size`  | Number of previous events kept in the mixing buffer (default: `5`)                                                                                                       |
+| `branchname`       | Optional name of the output branch that stores the mixed-event background candidates (default: `MixedCandidates`)                                                        |
+
+For each event, the `mix_pdg` tracks of the current event are discarded and replaced by the `mix_pdg` tracks of the `mix_buffer_size` preceding events, translated to the current primary vertex. The combined track set is re-id'ed to a contiguous range and reconstructed with the same decays as the signal candidates; all candidates built in this pass are combinatorial background. If MC info is available, the `generation` field of the mixed candidates is set to `-1000` to distinguish them from signal candidates.
+
 ### Cascade decays
 For the reconstruction of a cascade decay all consecutive decays are added into one config-file. The order of the decays need to be from last generation to
 first generation.

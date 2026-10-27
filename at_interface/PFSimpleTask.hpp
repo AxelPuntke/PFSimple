@@ -22,10 +22,22 @@ class PFSimpleTask : public AnalysisTree::Task {
   void SetDecays(const std::vector<Decay>& decays) { decays_ = decays; }
   void AddDecay(const Decay& decay) { decays_.emplace_back(decay); }
 
+  ///< Enable/disable background estimation via event mixing.
+  void SetIsEventMixing(bool is = true) { is_event_mixing_ = is; }
+  ///< PDG of the track species replaced by tracks from previous events (track-level mixing).
+  void SetMixPdg(int pdg) { mix_pdg_ = pdg; }
+  ///< Number of previous events whose tracks are combined with the current event to estimate the background.
+  void SetMixBufferSize(int n) { mix_buffer_size_ = n; }
+  ///< Background candidates obtained by combining tracks from different events.
+  const std::vector<OutputContainer>& GetMixedCandidates() const;
+
  protected:
   ConverterIn* in_task_{nullptr};
   SimpleFinder* pf_simple_{nullptr};
   std::vector<Decay> decays_{};
+  bool is_event_mixing_{false};
+  int mix_pdg_{-211};
+  int mix_buffer_size_{5};
 };
 
 #endif//KFPARTICLESIMPLE_ANALYSISTREEINTERFACE_PFSIMPLETASK_H_

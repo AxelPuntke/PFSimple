@@ -62,5 +62,11 @@
     "output_cuts" : [
         {"var" : "x", "from" : cut_value1, "to" : cut_value2},
         {"var" : "y", "from" : cut_value1, "to" : cut_value2}
-    ]
+    ],
+    "event_mixing" : {                       // optional: estimate combinatorial background by mixing tracks of different events
+        "enabled" : true,                    // set to false to disable
+        "mix_pdg" : -211,                    // PDG of the track species replaced by tracks from previous events (e.g. -211 for the pion of the Lambda)
+        "mix_buffer_size" : 5,               // number of previous events kept in the mixing buffer
+        "branchname" : "MixedCandidates"     // optional: name of the output branch with mixed-event background candidates
+    }
 }

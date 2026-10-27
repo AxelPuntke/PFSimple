@@ -1,11 +1,13 @@
 #include "SimpleFinder.hpp"
 #include <KFParticleSIMD.h>
 
+#include <algorithm>
 #include <numeric>
 using std::to_string;
 
 void SimpleFinder::Init(std::vector<KFParticle>&& tracks, const KFVertex& pv) {
   output_.clear();
+  mixed_output_.clear();
   current_candidate_id_ = 0;
 
   if (!tracks.empty())
@@ -14,6 +16,7 @@ void SimpleFinder::Init(std::vector<KFParticle>&& tracks, const KFVertex& pv) {
     last_track_id_ = 0;
 
   tracks_ = tracks;
+  input_tracks_ = tracks;
   prim_vx_ = pv;
 }
 
@@ -403,8 +406,8 @@ void SimpleFinder::SaveParticle(KFParticleSIMD& particle_simd, const Decay& deca
   particle.SetPDG(decay.GetMother().GetPdg());
 
   int track_id = last_track_id_ + current_candidate_id_ + 1;
-
   particle.SetId(track_id);
+
   tracks_.emplace_back(particle);
   current_candidate_id_++;
 
@@ -422,7 +425,12 @@ void SimpleFinder::SaveParticle(KFParticleSIMD& particle_simd, const Decay& deca
       daughters_generation.push_back(0);
   mother.SetDaughterGenerations(daughters_generation);
 
-  output_.emplace_back(mother);
+  if (is_mixed_pass_) {
+    // All candidates built in the mixing pass are combinatorial background.
+    mixed_output_.emplace_back(mother);
+  } else {
+    output_.emplace_back(mother);
+  }
 }
 
 float SimpleFinder::CalculateCosTopo(const KFParticleSIMD& mother) const {
@@ -625,5 +633,103 @@ void SimpleFinder::ReconstructDecay(const Decay& decay) {
 void SimpleFinder::FillDaughtersInfo(const std::vector<KFParticle>& tracks, const std::vector<Pdg_t>& pdgs) {
   for (size_t i = 0; i < tracks.size(); ++i) {
     values_.chi2_prim[i] = CalculateChiToPrimaryVertex(tracks.at(i), pdgs.at(i));
+  }
+}
+
+void SimpleFinder::FindMixedBackground() {
+  // Track-level event mixing (afkf-style): replace the current event's `mix_pdg`
+  // tracks with the `mix_pdg` tracks of previous events, translated to the current PV.
+  // Every candidate built in this pass is combinatorial background.
+  if (!IsSupportedTrackPdg(mix_pdg_) || mix_buffer_size_ <= 0)
+    return;
+
+  // Save the current event reconstruction state.
+  const std::vector<KFParticle> saved_tracks = tracks_;
+  const std::map<Pdg_t, std::vector<int>> saved_indexes = indexes_;
+  const std::map<int, int> saved_id2index = id2index_;
+  const int saved_last_track_id = last_track_id_;
+  const int saved_current_candidate_id = current_candidate_id_;
+
+  // Build the combined track set:
+  //   - all current event input tracks except the `mix_pdg` species;
+  //   - the buffered `mix_pdg` tracks of previous events, translated to the current PV.
+  // NOTE: `tracks_` has been extended with reconstructed mother candidates during the
+  // normal pass, so the *input* tracks are taken from the `input_tracks_` snapshot.
+  std::vector<KFParticle> mixed_tracks;
+  mixed_tracks.reserve(input_tracks_.size());
+
+  for (const auto& track : input_tracks_) {
+    if (track.GetPDG() != mix_pdg_)
+      mixed_tracks.push_back(track);
+  }
+  for (const MixEvent& mix_event : mixed_events_buffer_) {
+    for (const KFParticle& mix_track : mix_event.mix_tracks) {
+      mixed_tracks.push_back(TranslateMixTrack(mix_track, mix_event.pv, prim_vx_));
+    }
+  }
+
+  // Re-id contiguously so that the generation boundary (last_track_id_) marks all
+  // input tracks as generation 0, independent of their original event.
+  tracks_ = std::move(mixed_tracks);
+  for (size_t i = 0; i < tracks_.size(); ++i)
+    tracks_.at(i).SetId(static_cast<int>(i));
+  last_track_id_ = static_cast<int>(tracks_.size()) - 1;
+  current_candidate_id_ = 0;
+
+  is_mixed_pass_ = true;
+  for (const auto& decay : decays_) {
+    InitTrackIndexesMap();
+    ReconstructDecay(decay);
+  }
+  is_mixed_pass_ = false;
+
+  // Restore the current event reconstruction state.
+  tracks_ = saved_tracks;
+  indexes_ = saved_indexes;
+  id2index_ = saved_id2index;
+  last_track_id_ = saved_last_track_id;
+  current_candidate_id_ = saved_current_candidate_id;
+
+  // Buffer the current event's `mix_pdg` tracks for future mixing (ring buffer of size mix_buffer_size_).
+  MixEvent mix_event;
+  mix_event.pv = prim_vx_;
+  for (const auto& track : input_tracks_) {
+    if (track.GetPDG() == mix_pdg_)
+      mix_event.mix_tracks.push_back(track);
+  }
+  if (!mix_event.mix_tracks.empty()) {
+    mixed_events_buffer_.push_back(std::move(mix_event));
+    while (static_cast<int>(mixed_events_buffer_.size()) > mix_buffer_size_)
+      mixed_events_buffer_.pop_front();
+  }
+}
+
+KFParticle SimpleFinder::TranslateMixTrack(const KFParticle& track,
+                                           const KFVertex& source_pv,
+                                           const KFVertex& target_pv) const {
+  KFParticle translated = track;
+  translated.X() += target_pv.GetX() - source_pv.GetX();
+  translated.Y() += target_pv.GetY() - source_pv.GetY();
+  translated.Z() += target_pv.GetZ() - source_pv.GetZ();
+  translated.SetFieldCoeff(translated.GetFieldCoeff()[9] + target_pv.GetZ() - source_pv.GetZ(), 9);
+  return translated;
+}
+
+bool SimpleFinder::IsSupportedTrackPdg(int pdg) const {
+  switch (std::abs(pdg)) {
+    case 1:   // charge-based PDG (pid_mode 0 sets the track PDG to the charge, e.g. -1 for a pion)
+    case 11:
+    case 13:
+    case 211:
+    case 321:
+    case 2212:
+    case 1000010020:
+    case 1000010029:
+    case 1000010030:
+    case 1000020030:
+    case 1000020040:
+      return true;
+    default:
+      return false;
   }
 }

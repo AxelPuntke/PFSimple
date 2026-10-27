@@ -30,6 +30,10 @@ class ConverterOut : public AnalysisTree::Task {
   void SetRecTracksName(const std::string& name) { rec_tracks_name_ = name; }
   void SetSimTracksName(const std::string& name) { mc_particles_name_ = name; }
   void SetIsWriteDetailedBG(bool is=true) { is_detailed_bg_ = is; }
+  ///< Enable writing of event-mixing background candidates into a separate branch.
+  void SetIsWriteEventMixing(bool is = true) { is_write_event_mixing_ = is; }
+  ///< Name of the branch that stores event-mixing background candidates.
+  void SetMixedCandidatesBranchName(const std::string& name) { mixed_branch_name_ = name; }
 
   void SetMcInfoAvailable(bool mc_info_available = true) { mc_info_available_ = mc_info_available; }
 
@@ -61,6 +65,7 @@ class ConverterOut : public AnalysisTree::Task {
   AnalysisTree::Particles* particle_reco_{nullptr};
   AnalysisTree::Particles* particle_sim_{nullptr};
   AnalysisTree::Matching* particle_reco2sim_{nullptr};
+  AnalysisTree::Particles* mixed_particles_{nullptr};
 
   // input branches
   std::string mc_particles_name_{"SimParticles"};
@@ -118,6 +123,9 @@ class ConverterOut : public AnalysisTree::Task {
   bool is_write_mc_{true};
 
   bool mc_info_available_{true};
+
+  bool is_write_event_mixing_{false};
+  std::string mixed_branch_name_{"MixedCandidates"};
 };
 
 #endif//KFPARTICLESIMPLE_ANALYSISTREEINTERFACE_CONVERTEROUT_H_

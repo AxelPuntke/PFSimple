@@ -8,6 +8,13 @@
 
 #include <algorithm>
 
+namespace {
+// Value written into the "generation" field of event-mixing background candidates.
+// It is negative to distinguish them from signal candidates (generation >= 0)
+// and from the detailed-background encoding (also negative).
+constexpr int kMixedBgGeneration = -1000;
+}// namespace
+
 void ConverterOut::CopyParticle(const OutputContainer& kf_particle, AnalysisTree::Particle& particle, const int Ndaughters) const {
   
   //particle.SetIsAllowedSetMassAndChargeExplicitly(true); //Uncomment when most recent AnalysisTree is installed in cbmroot
@@ -80,6 +87,9 @@ void ConverterOut::Exec() {
 
   particle_reco_->ClearChannels();
 
+  if (is_write_event_mixing_)
+    mixed_particles_->ClearChannels();
+
   if (is_write_mc_ == true) {
     particle_sim_->ClearChannels();
     particle_reco2sim_->Clear();
@@ -112,6 +122,27 @@ void ConverterOut::Exec() {
     if (is_write) {
       auto& particlerec = particle_reco_->AddChannel(br_conf);
       particlerec = particle;
+    }
+  }
+
+  // Write the event-mixing background candidates into a separate branch.
+  if (is_write_event_mixing_) {
+    const auto& mixed_candidates = pfsimple_task_->GetSimpleFinder()->GetMixedCandidates();
+    const auto& mixed_br_conf = out_config->GetBranchConfig(mixed_particles_->GetId());
+
+    for (const auto& candidate : mixed_candidates) {
+      const int Ndaughters = candidate.GetDaughterIds().size();
+
+      AnalysisTree::Particle particle(mixed_particles_->GetNumberOfChannels(), mixed_br_conf);
+      CopyParticle(candidate, particle, Ndaughters);
+
+      if (is_write_mc_ == true) {
+        // Event-mixed candidates have no true MC mother: mark them as background.
+        particle.SetField(kMixedBgGeneration, generation_field_id_);
+      }
+
+      auto& particle_mixed = mixed_particles_->AddChannel(mixed_br_conf);
+      particle_mixed = particle;
     }
   }
 }
@@ -197,6 +228,13 @@ void ConverterOut::Init() {
   if (is_write_mc_ == true) {
     man->AddBranch(particle_sim_, out_particles_sim);
     man->AddMatching(out_branch, out_branch_sim, particle_reco2sim_);
+  }
+
+  // Event-mixing background candidates are stored in a separate branch with the same schema
+  // as the signal candidates (so that the two can be analysed with the same code).
+  if (is_write_event_mixing_) {
+    AnalysisTree::BranchConfig out_particles_mixed = out_particles.Clone(mixed_branch_name_, AnalysisTree::DetType::kParticle);
+    man->AddBranch(mixed_particles_, out_particles_mixed);
   }
   
   if (output_cuts_)

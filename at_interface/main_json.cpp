@@ -194,6 +194,20 @@ int main(int argc, char** argv) {
     if(LIST_CONTAINS(config["io"]["save_options"], "write_detailed_bg")) out_converter->SetIsWriteDetailedBG(true);
     out_converter->SetMcInfoAvailable(config["io"].value("mc_info_available", true));
 
+    // Event-mixing background estimation (optional, top-level config block).
+    if (config.contains("event_mixing")) {
+        const auto& em_cfg = config["event_mixing"];
+        const bool em_enabled = em_cfg.value("enabled", true);
+        const int em_mix_pdg = em_cfg.value("mix_pdg", -211);
+        const int em_buffer_size = em_cfg.value("mix_buffer_size", 5);
+        pf_task->SetIsEventMixing(em_enabled);
+        pf_task->SetMixPdg(em_mix_pdg);
+        pf_task->SetMixBufferSize(em_buffer_size);
+        out_converter->SetIsWriteEventMixing(em_enabled);
+        if (em_cfg.contains("branchname"))
+            out_converter->SetMixedCandidatesBranchName(em_cfg["branchname"].get<std::string>());
+    }
+
     std::vector<AnalysisTree::SimpleCut> vec_output_cuts = {};
     if (config.contains("output_cuts"))
     {

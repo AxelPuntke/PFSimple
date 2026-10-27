@@ -13,6 +13,7 @@
 #ifndef KFPARTICLESIMPLE_KFSIMPLE_SIMPLEFINDER_HPP_
 #define KFPARTICLESIMPLE_KFSIMPLE_SIMPLEFINDER_HPP_
 
+#include <deque>
 #include <map>
 #include <vector>
 
@@ -52,6 +53,8 @@ class SimpleFinder {
       InitTrackIndexesMap();
       ReconstructDecay(decay);
     }
+    if (is_event_mixing_)
+      FindMixedBackground();
   }
 
   void ReconstructDecay(const Decay& decay);
@@ -59,8 +62,18 @@ class SimpleFinder {
   void AddDecay(const Decay& decay) { decays_.emplace_back(decay); }
   const std::vector<OutputContainer>& GetCandidates() const { return output_; }
 
+  ///< Enable/disable background estimation via event mixing.
+  void SetIsEventMixing(bool is = true) { is_event_mixing_ = is; }
+  ///< PDG of the track species replaced by tracks from previous events (track-level mixing).
+  void SetMixPdg(int pdg) { mix_pdg_ = pdg; }
+  ///< Number of previous events whose tracks are combined with the current event to estimate the background.
+  void SetMixBufferSize(int n) { mix_buffer_size_ = n; }
+  ///< Background candidates obtained by combining tracks from different events (event mixing).
+  const std::vector<OutputContainer>& GetMixedCandidates() const { return mixed_output_; }
+
  private:
   std::vector<KFParticle> tracks_;    ///< input information: vector of tracks
+  std::vector<KFParticle> input_tracks_;///< snapshot of the current event input tracks (used for event mixing)
   KFVertex prim_vx_;                  ///< input information: primary vertex
   std::array<float, 3> sec_vx_;       ///< input information: primary vertex
   std::vector<Decay> decays_{};       ///< input information: list of decays to reconstruct
@@ -72,8 +85,20 @@ class SimpleFinder {
   SelectionValues values_{};                   ///< struct with mother and daughters properties used to apply cuts
 
   std::vector<OutputContainer> output_{};///< output information: vector of candidates
+  std::vector<OutputContainer> mixed_output_{};///< output information: mixed-event background candidates
   int current_candidate_id_{0};
   int last_track_id_{0};
+
+  // event mixing
+  struct MixEvent {
+    KFVertex pv;                      ///< primary vertex of the buffered event
+    std::vector<KFParticle> mix_tracks;///< input tracks of the buffered event with PDG == mix_pdg_
+  };
+  std::deque<MixEvent> mixed_events_buffer_;///< ring buffer of previous events' mix_pdg tracks
+  bool is_event_mixing_{false};
+  int mix_pdg_{-211};///< PDG of the track species replaced by tracks from previous events
+  int mix_buffer_size_{5};///< number of previous events kept in the mixing buffer
+  bool is_mixed_pass_{false};
 
   /**
   * Find indexes of good daughters
@@ -107,6 +132,13 @@ class SimpleFinder {
 
   void FillDaughtersInfo(const std::vector<KFParticle>& tracks, const std::vector<Pdg_t>& pdgs);
   void SaveParticle(KFParticleSIMD& particle_simd, const Decay& decay);
+
+  ///< Reconstruct background candidates by combining current event tracks with tracks of previous events.
+  void FindMixedBackground();
+  ///< Translate a buffered track from the source event PV to the target (current) event PV.
+  KFParticle TranslateMixTrack(const KFParticle& track, const KFVertex& source_pv, const KFVertex& target_pv) const;
+  ///< Check whether the given PDG can be used as a track-level mixing species.
+  bool IsSupportedTrackPdg(int pdg) const;
 
   bool ApplyNonLinearCut() const {
     return ml_cuts_ == nullptr || ml_cuts_->ApplyCut(values_);
