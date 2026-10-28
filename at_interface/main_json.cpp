@@ -216,10 +216,21 @@ int main(int argc, char** argv) {
             // Print a one-time summary of how event mixing applies to each configured
             // mother. Mixing is track-level and single-species: only daughters whose
             // PDG *exactly* matches `mix_pdg` (sign-sensitive, mirroring AFKF's
-            // exact-PDG mix pools) are replaced by tracks from other events.
-            //   - all daughters match  -> FULLY mixed
-            //   - some daughters match  -> PARTIAL  (only the matching species is mixed)
-            //   - no daughter matches   -> NOT mixed (event-mixing settings do not apply)
+            // exact-PDG mix pools) are replaced by tracks from other events. The
+            // current event is always excluded from its own buffer (read-then-fill),
+            // so its real daughters never combine with each other.
+            //
+            //   - all daughters match  -> all mixed species  (every daughter is swapped)
+            //   - some daughters match  -> partial mixing  (only the matching species swapped)
+            //   - no daughter matches   -> not mixed  (event-mixing settings do not apply)
+            //
+            // NOTE: "all mixed species" does NOT guarantee every daughter comes from a
+            // *different* event. The buffer holds up to `mix_buffer_size` previous
+            // events, and their mixed-species tracks are combined into one flat pool,
+            // so a combinatorially paired set of same-species daughters can occasionally
+            // both come from the *same* buffered event (identical to AFKF). This leaves
+            // a small residual of cross-event real-decay leakage, but no current-event
+            // signal.
             fprintf(stderr, "\n=== Event mixing summary (mix_pdg=%d, buffer=%d, 9 centrality bins) ===\n",
                    em_mix_pdg, em_buffer_size);
             for (const auto& decay : decays) {
@@ -242,11 +253,16 @@ int main(int argc, char** argv) {
                             "(%d/%d daughters match mix_pdg=%d). A fully mixed implementation is not yet ready.\n",
                             decay.GetName().c_str(), n_match, n_daughters, em_mix_pdg);
                 } else {
-                    status = "FULLY mixed";
+                    status = "ALL species mixed";
                 }
                 fprintf(stderr, "  %-20s : %s (%d/%d daughters match mix_pdg=%d)\n",
                        decay.GetName().c_str(), status, n_match, n_daughters, em_mix_pdg);
             }
+            fprintf(stderr, "  note: mixed daughters are drawn from the previous %d events in the same\n"
+                   "  centrality bin (flat pool); same-species daughters can occasionally both\n"
+                   "  come from one buffered event (as in AFKF) - a small cross-event leak, not\n"
+                   "  a current-event signal. The current event is excluded from its own buffer.\n",
+                   em_buffer_size);
             fprintf(stderr, "===\n\n");
         }
     }
