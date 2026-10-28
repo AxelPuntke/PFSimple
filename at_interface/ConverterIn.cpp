@@ -37,6 +37,14 @@ void ConverterIn::FillParticle(const AnalysisTree::BranchChannel& rec_particle) 
       throw std::runtime_error("MC PDG mode (1) can only be used with available MC information.");
 
     const int sim_id = kf2sim_tracks_->GetMatch(rec_particle.GetId());
+    // Optional MC-match weight threshold (used only for the AFKF comparison,
+    // where AFKF drops tracks whose MC match weight < 0.7). Off by default so
+    // that the standard pid_mode-1 behaviour is unchanged.
+    if (mc_match_weight_min_ > 0.f) {
+      const float match_weight = (sim_id >= 0) ? rec_particle[match_weight_field_] : -1.f;
+      if (!((sim_id >= 0) && (match_weight >= mc_match_weight_min_)))
+        return;  // drop the track, as AFKF does for pdg == -1
+    }
     if(sim_id<0) pdg = q;
     else         pdg = sim_tracks_[sim_id][sim_pdg_field_];
     if (TMath::Abs(pdg == 3122) ||
@@ -111,6 +119,10 @@ void ConverterIn::Init() {
 
   q_field_ = kf_tracks_.GetField("q");
 
+  // match_weight is used in pid_mode 1 to replicate AFKF's MC-match threshold
+  // (AFKF drops tracks whose MC match weight < 0.7).
+  match_weight_field_ = kf_tracks_.GetField("match_weight");
+
   if (pid_mode_ > 1)
     rec_pdg_field_ = kf_tracks_.GetField("pid");
 
@@ -125,6 +137,11 @@ void ConverterIn::Init() {
   vtx_x_field_ = rec_event_header_.GetField("vtx_x");
   vtx_y_field_ = rec_event_header_.GetField("vtx_y");
   vtx_z_field_ = rec_event_header_.GetField("vtx_z");
+
+  // Optional event centrality (used for event-mixing bin selection, as in AFKF).
+  // Field::Init only warns (does not throw) when the field is absent, so it is safe
+  // to request it unconditionally; we guard the read with the field id.
+  centrality_tracks_field_ = rec_event_header_.GetField("centrality_tracks");
 
   tx_field_ = kf_tracks_.GetField("tx");
   ty_field_ = kf_tracks_.GetField("ty");
@@ -153,6 +170,12 @@ void ConverterIn::Exec() {
   container_.SetPV(rec_event_header_[0][vtx_x_field_],
                    rec_event_header_[0][vtx_y_field_],
                    rec_event_header_[0][vtx_z_field_]);
+
+  // Pass the event centrality through to the finder (for event-mixing bin selection).
+  if (centrality_tracks_field_.GetFieldId() != AnalysisTree::UndefValueInt)
+    container_.SetCentrality(rec_event_header_[0][centrality_tracks_field_]);
+  else
+    container_.SetCentrality(0.f);
 
   int n_good_tracks{0};
   container_.Reserve(n_tracks);

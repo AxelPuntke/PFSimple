@@ -94,10 +94,15 @@ class SimpleFinder {
     KFVertex pv;                      ///< primary vertex of the buffered event
     std::vector<KFParticle> mix_tracks;///< input tracks of the buffered event with PDG == mix_pdg_
   };
-  std::deque<MixEvent> mixed_events_buffer_;///< ring buffer of previous events' mix_pdg tracks
+  ///< Number of centrality bins used for the event-mixing buffer (mirrors AFKF).
+  static constexpr int kMixCentralityBins = 9;
+  ///< Ring buffers of previous events' mix_pdg tracks, one per centrality bin.
+  ///< An event only mixes with the last `mix_buffer_size_` events of the *same* bin.
+  std::deque<MixEvent> mixed_events_buffer_[kMixCentralityBins];
+  float current_centrality_{0.f};///< centrality of the current event (for bin selection)
   bool is_event_mixing_{false};
   int mix_pdg_{-211};///< PDG of the track species replaced by tracks from previous events
-  int mix_buffer_size_{5};///< number of previous events kept in the mixing buffer
+  int mix_buffer_size_{5};///< number of previous events kept in the mixing buffer (per bin)
   bool is_mixed_pass_{false};
 
   /**
@@ -139,6 +144,9 @@ class SimpleFinder {
   KFParticle TranslateMixTrack(const KFParticle& track, const KFVertex& source_pv, const KFVertex& target_pv) const;
   ///< Check whether the given PDG can be used as a track-level mixing species.
   bool IsSupportedTrackPdg(int pdg) const;
+  ///< Map an event `centrality_tracks` value to a 0-8 centrality bin (mirrors AFKF's
+  ///< `Centrality_AT` with `centFull[9] = {80,70,60,50,40,30,20,10,5}`).
+  static int CentralityAT(float gRefMult);
 
   bool ApplyNonLinearCut() const {
     return ml_cuts_ == nullptr || ml_cuts_->ApplyCut(values_);

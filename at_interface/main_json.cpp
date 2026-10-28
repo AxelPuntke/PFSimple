@@ -98,6 +98,9 @@ int main(int argc, char** argv) {
     in_converter->SetSimTracksName("SimParticles");
     in_converter->SetTrackCuts(new Cuts("Cut to reproduce KFPF", {EqualsCut((config["io"]["rectracks_branchname"].get<std::string>() + ".pass_cuts").c_str(), 1)}));
     in_converter->SetMcInfoAvailable(config["io"].value("mc_info_available", true));
+    // Optional MC-match weight threshold for pid_mode 1 (0 = off, standard).
+    // Set to 0.7 in the AFKF comparison config to replicate AFKF's track selection.
+    in_converter->SetMcMatchWeightMin(config["io"].value("mc_match_weight_min", 0.0));
 
     std::vector<Decay> decays;
 

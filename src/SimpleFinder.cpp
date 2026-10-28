@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <numeric>
+#include <iostream>
 using std::to_string;
 
 void SimpleFinder::Init(std::vector<KFParticle>&& tracks, const KFVertex& pv) {
@@ -23,6 +24,25 @@ void SimpleFinder::Init(std::vector<KFParticle>&& tracks, const KFVertex& pv) {
 void SimpleFinder::Init(const InputContainer& input) {// TODO know how to de-const without time lose for copying by value
   std::vector<KFParticle> tracks = input.GetTracks();
   Init(std::move(tracks), input.GetVertex());
+  current_centrality_ = input.GetCentrality();
+}
+
+int SimpleFinder::CentralityAT(float gRefMult) {
+  // Mirrors AFKF's Centrality_AT with centFull[9] = {80,70,60,50,40,30,20,10,5}.
+  // Bin 8 = most central (lowest centrality value), bin 0 = most peripheral.
+  static const int centFull[kMixCentralityBins] = {80, 70, 60, 50, 40, 30, 20, 10, 5};
+  int centrality;
+  if (gRefMult <= centFull[8]) centrality = 8;
+  else if (gRefMult <= centFull[7]) centrality = 7;
+  else if (gRefMult <= centFull[6]) centrality = 6;
+  else if (gRefMult <= centFull[5]) centrality = 5;
+  else if (gRefMult <= centFull[4]) centrality = 4;
+  else if (gRefMult <= centFull[3]) centrality = 3;
+  else if (gRefMult <= centFull[2]) centrality = 2;
+  else if (gRefMult <= centFull[1]) centrality = 1;
+  else if (gRefMult <= centFull[0]) centrality = 0;
+  else centrality = -1;
+  return (centrality < 0 || centrality > 8) ? 0 : centrality;
 }
 
 float SimpleFinder::CalculateDistanceBetweenParticles() {
@@ -643,6 +663,13 @@ void SimpleFinder::FindMixedBackground() {
   if (!IsSupportedTrackPdg(mix_pdg_) || mix_buffer_size_ <= 0)
     return;
 
+  // Select the event-mixing bin for the current event (mirrors AFKF's
+  // centrality-binned buffer). Events only mix with the last `mix_buffer_size_`
+  // events of the *same* centrality bin.
+  int cent_bin = CentralityAT(current_centrality_);
+  if (cent_bin < 0 || cent_bin >= kMixCentralityBins) cent_bin = 0;
+  auto& buffer = mixed_events_buffer_[cent_bin];
+
   // Save the current event reconstruction state.
   const std::vector<KFParticle> saved_tracks = tracks_;
   const std::map<Pdg_t, std::vector<int>> saved_indexes = indexes_;
@@ -652,7 +679,8 @@ void SimpleFinder::FindMixedBackground() {
 
   // Build the combined track set:
   //   - all current event input tracks except the `mix_pdg` species;
-  //   - the buffered `mix_pdg` tracks of previous events, translated to the current PV.
+  //   - the buffered `mix_pdg` tracks of previous events (same centrality bin),
+  //     translated to the current PV.
   // NOTE: `tracks_` has been extended with reconstructed mother candidates during the
   // normal pass, so the *input* tracks are taken from the `input_tracks_` snapshot.
   std::vector<KFParticle> mixed_tracks;
@@ -662,7 +690,7 @@ void SimpleFinder::FindMixedBackground() {
     if (track.GetPDG() != mix_pdg_)
       mixed_tracks.push_back(track);
   }
-  for (const MixEvent& mix_event : mixed_events_buffer_) {
+  for (const MixEvent& mix_event : buffer) {
     for (const KFParticle& mix_track : mix_event.mix_tracks) {
       mixed_tracks.push_back(TranslateMixTrack(mix_track, mix_event.pv, prim_vx_));
     }
@@ -690,7 +718,8 @@ void SimpleFinder::FindMixedBackground() {
   last_track_id_ = saved_last_track_id;
   current_candidate_id_ = saved_current_candidate_id;
 
-  // Buffer the current event's `mix_pdg` tracks for future mixing (ring buffer of size mix_buffer_size_).
+  // Buffer the current event's `mix_pdg` tracks for future mixing (ring buffer of
+  // size mix_buffer_size_ per centrality bin).
   MixEvent mix_event;
   mix_event.pv = prim_vx_;
   for (const auto& track : input_tracks_) {
@@ -698,9 +727,9 @@ void SimpleFinder::FindMixedBackground() {
       mix_event.mix_tracks.push_back(track);
   }
   if (!mix_event.mix_tracks.empty()) {
-    mixed_events_buffer_.push_back(std::move(mix_event));
-    while (static_cast<int>(mixed_events_buffer_.size()) > mix_buffer_size_)
-      mixed_events_buffer_.pop_front();
+    buffer.push_back(std::move(mix_event));
+    while (static_cast<int>(buffer.size()) > mix_buffer_size_)
+      buffer.pop_front();
   }
 }
 

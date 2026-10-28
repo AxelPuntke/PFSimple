@@ -40,6 +40,10 @@ class ConverterIn : public AnalysisTree::Task {
   void SetSimTracksName(const std::string& name) { sim_tracks_name_ = name; }
 
   void SetMcInfoAvailable(bool mc_info_available = true) { mc_info_available_ = mc_info_available; }
+  /// Optional minimum MC-match weight for pid_mode 1 (default 0 = no threshold).
+  /// When > 0, tracks without a good MC match (weight >= threshold) are dropped,
+  /// replicating AFKF's track selection. Used only for the AFKF comparison.
+  void SetMcMatchWeightMin(float value) { mc_match_weight_min_ = value; }
 
   void UseNoPID() { pid_mode_ = 0; }
   void UseMcPID() { pid_mode_ = 1; }
@@ -103,6 +107,7 @@ class ConverterIn : public AnalysisTree::Task {
   std::string sim_tracks_name_;
 
   bool mc_info_available_{true};
+  float mc_match_weight_min_{0.f};  // 0 = no threshold (default, standard behaviour)
 
   // fields for input parameters
 
@@ -116,6 +121,7 @@ class ConverterIn : public AnalysisTree::Task {
   AnalysisTree::Field pz_field_;
 
   AnalysisTree::Field q_field_;
+  AnalysisTree::Field match_weight_field_;
 
   AnalysisTree::Field rec_pdg_field_;
   AnalysisTree::Field prob_p_field_;
@@ -127,6 +133,8 @@ class ConverterIn : public AnalysisTree::Task {
   AnalysisTree::Field vtx_x_field_;
   AnalysisTree::Field vtx_y_field_;
   AnalysisTree::Field vtx_z_field_;
+
+  AnalysisTree::Field centrality_tracks_field_{};///< event centrality (for event-mixing bin selection)
 
   AnalysisTree::Field tx_field_;
   AnalysisTree::Field ty_field_;

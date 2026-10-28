@@ -42,6 +42,11 @@ class InputContainer {
   const KFVertex& GetVertex() const { return vtx_; };
   const std::vector<KFParticle>& GetTracks() const { return tracks_; };
 
+  ///< Set the event centrality (e.g. from the event header `centrality_tracks`).
+  ///< Used to select the event-mixing buffer bin. Defaults to 0 (no centrality info).
+  void SetCentrality(float centrality) { centrality_ = centrality; }
+  float GetCentrality() const { return centrality_; }
+
   void Clear() {
     if (!tracks_.empty()) {
       tracks_.clear();
@@ -53,6 +58,7 @@ class InputContainer {
  protected:
   KFVertex vtx_;
   std::vector<KFParticle> tracks_{};
+  float centrality_{0.f};///< event centrality (for event-mixing bin selection)
 };
 
 #endif//InputContainer_H
