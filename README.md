@@ -60,6 +60,7 @@ The program is configured with a JSON config file which contains various setting
 | `receventheader_branchname` | branchname of reconstructed event header in input analysistree, default names: `RecEventHeader` for standard analyistree, `AnaEventHeader` after running centrality-framework |
 | `n_events`                  | number of events to be processed, set to `-1` to process all events                                                                                                           |
 | `mc_info_available`         | Indicates if the data comes with mc info and in case it does, computes additional MC-based fields (set to `false` when analyzing Verticla Test data)                          |
+| `mc_match_weight_min` (opt.)| Optional minimum MC-match weight for `pid_mode 1` (default: `0` = no threshold). When set `> 0`, a track is dropped unless it has an MC match whose `match_weight` field is `>= mc_match_weight_min`. Mirrors the `afkf` track selection, which drops tracks whose MC match weight is below `0.7`. Off by default, so standard `pid_mode 1` behaviour is unchanged. |
 | `save_options` (optional)   | defines save options for the candidates of all decays in this config (see next table)                                                                                         |
 
 | `save_options` Flag         | Description                                                                                                                                                                   |
@@ -179,6 +180,7 @@ Several example parameter files can be found in the folder `at_interface/configs
 | `config_omega_pidmode1.json`          | Omega, Lambda      | `1`        | cascade decay                          |
 | `config_omegastar_pidmode1.json`      | Omega*, Xi, Lambda | `1`        | cascade decay, 3-body decay            |
 | `config_lambda_k0short_pidmode1.json` | Lambda, K0Short    | `1`        |                                        |
+| `config_lambda_mix_afkf_xcheck.json`  | Lambda             | `1`        | event mixing, reproduces the `afkf` config `atkf_runtime_config_mix_pion.json` for cross-validation |
 
 
 
