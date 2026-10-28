@@ -1,0 +1,60 @@
+// PFSimple Lambda example config for cross-validation against AFKF.
+//
+// This config reproduces the Lambda result produced by the AFKF repo config
+//   afkf-master/macro/atkf_runtime_config_mix_pion.json
+// which reconstructs the Lambda (3122 -> Pi- P+) with pion event mixing
+// (mix_pdg = -211), pid_mode = 1 (MC PID) and pv_find_mode = 3 (stored PV).
+//
+// Cut mapping AFKF -> PFSimple:
+//   chi_primary_track            = 5.0  ->  chi2prim
+//   max_distance_between_particles = 1.0 ->  dist
+//   chi2_2d                      = 5.0  ->  chi2geo
+//   ldl_2d                       = 3.0  ->  LdL
+//
+// Note on the proton daughter pdg_code [2212, 1, 211]:
+//   AFKF's KFParticle fork re-hypothesizes real pions (PDG 211) as protons in
+//   the Lambda combinatorial. To match AFKF's background, the proton daughter
+//   here is allowed to be a real pion as well (2212 or 211), in addition to the
+//   charge-only hypothesis (1). Use [2212] for a strictly PID-selective
+//   (non-matching) Lambda.
+
+{
+    "io" : {
+        "input_treename" : "aTree",
+        "receventheader_branchname" : "AnaEventHeader",
+        "rectracks_branchname" : "VtxTracks",
+        "n_events" : -1,
+        "mc_info_available" : true,
+        "save_options": []
+    },
+    "pid_mode" : 1,
+    "decays" : [
+        {
+            "mother" : {
+                "name" : "Lambda",
+                "pdg_code" : 3122,
+                "cuts" : {
+                    "dist" : 1.0,
+                    "chi2geo" : 5.0,
+                    "LdL" : 3.0
+                }
+            },
+            "daughters" : [
+                {
+                    "pdg_code" : [-211],
+                    "cuts" : {"chi2prim" : 5.0}
+                },
+                {
+                    "pdg_code" : [2212, 1, 211],
+                    "cuts" : {"chi2prim" : 5.0}
+                }
+            ]
+        }
+    ],
+    "event_mixing" : {
+        "enabled" : true,
+        "mix_pdg" : -211,
+        "mix_buffer_size" : 5,
+        "branchname" : "MixedCandidates"
+    }
+}
