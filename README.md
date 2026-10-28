@@ -180,7 +180,7 @@ Several example parameter files can be found in the folder `at_interface/configs
 | `config_omega_pidmode1.json`          | Omega, Lambda      | `1`        | cascade decay                          |
 | `config_omegastar_pidmode1.json`      | Omega*, Xi, Lambda | `1`        | cascade decay, 3-body decay            |
 | `config_lambda_k0short_pidmode1.json` | Lambda, K0Short    | `1`        |                                        |
-| `config_lambda_mix_afkf_xcheck.json`  | Lambda             | `1`        | event mixing, reproduces the `afkf` config `atkf_runtime_config_mix_pion.json` for cross-validation |
+| `config_lambda_mix_afkf_xcheck.json`  | Lambda             | `1`        | event mixing, reproduces the `afkf` config `atkf_runtime_config_mix_pion.json` for cross-validation (incl. `mc_match_weight_min: 0.7` to mirror afkf's hardcoded track selection) |
 
 
 

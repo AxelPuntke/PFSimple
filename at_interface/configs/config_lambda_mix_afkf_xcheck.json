@@ -17,6 +17,14 @@
 //   here is allowed to be a real pion as well (2212 or 211), in addition to the
 //   charge-only hypothesis (1). Use [2212] for a strictly PID-selective
 //   (non-matching) Lambda.
+//
+// Note on mc_match_weight_min:
+//   AFKF drops tracks whose MC match weight is below 0.7 (hardcoded in
+//   ATKFParticleFinder, not a config option). mc_match_weight_min: 0.7
+//   replicates this exactly. On the reference dataset
+//   (test/atfilesmc, PHQ+Geant3 MC) all tracks have match_weight = 1.0, so the
+//   threshold drops nothing and the setting is a no-op; it is kept here so the
+//   config also matches AFKF on other files where the weights are not 1.
 
 {
     "io" : {
@@ -25,6 +33,7 @@
         "rectracks_branchname" : "VtxTracks",
         "n_events" : -1,
         "mc_info_available" : true,
+        "mc_match_weight_min" : 0.7,
         "save_options": []
     },
     "pid_mode" : 1,
