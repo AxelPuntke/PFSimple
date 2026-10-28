@@ -154,6 +154,8 @@ The optional `event_mixing` block estimates the combinatorial background by reco
 
 For each event, the `mix_pdg` tracks of the current event are discarded and replaced by the `mix_pdg` tracks of the `mix_buffer_size` preceding events, translated to the current primary vertex. The combined track set is re-id'ed to a contiguous range and reconstructed with the same decays as the signal candidates; all candidates built in this pass are combinatorial background. If MC info is available, the `generation` field of the mixed candidates is set to `-1000` to distinguish them from signal candidates.
 
+Mixing is single-species and sign-sensitive: only daughters whose `pdg_code` exactly matches `mix_pdg` are swapped (as in `afkf`). When the config has several decays, a startup summary reports, per mother, whether it is `ALL species mixed`, `PARTIAL` (only some daughters match, so the mixed sample is a partially-mixed background), or `NOT mixed` (no daughter matches `mix_pdg`, so no mixed background is produced for it). The current event is always excluded from its own buffer (read-then-fill), so its real daughters never combine with each other; however, the mixed daughters are drawn from a flat pool of the `mix_buffer_size` preceding events in the same centrality bin, so same-species daughters can occasionally both come from one buffered event (a small cross-event leak, identical to `afkf`, but not a current-event signal).
+
 ### Cascade decays
 For the reconstruction of a cascade decay all consecutive decays are added into one config-file. The order of the decays need to be from last generation to
 first generation.

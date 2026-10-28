@@ -258,11 +258,6 @@ int main(int argc, char** argv) {
                 fprintf(stderr, "  %-20s : %s (%d/%d daughters match mix_pdg=%d)\n",
                        decay.GetName().c_str(), status, n_match, n_daughters, em_mix_pdg);
             }
-            fprintf(stderr, "  note: mixed daughters are drawn from the previous %d events in the same\n"
-                   "  centrality bin (flat pool); same-species daughters can occasionally both\n"
-                   "  come from one buffered event (as in AFKF) - a small cross-event leak, not\n"
-                   "  a current-event signal. The current event is excluded from its own buffer.\n",
-                   em_buffer_size);
             fprintf(stderr, "===\n\n");
         }
     }
