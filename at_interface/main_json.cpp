@@ -10,6 +10,8 @@
 #include <getopt.h>
 #include <string>
 #include <map>
+#include <vector>
+#include <algorithm>
 #include <nlohmann/json.hpp>
 #include <regex>
 
@@ -209,6 +211,44 @@ int main(int argc, char** argv) {
         out_converter->SetIsWriteEventMixing(em_enabled);
         if (em_cfg.contains("branchname"))
             out_converter->SetMixedCandidatesBranchName(em_cfg["branchname"].get<std::string>());
+
+        if (em_enabled) {
+            // Print a one-time summary of how event mixing applies to each configured
+            // mother. Mixing is track-level and single-species: only daughters whose
+            // PDG *exactly* matches `mix_pdg` (sign-sensitive, mirroring AFKF's
+            // exact-PDG mix pools) are replaced by tracks from other events.
+            //   - all daughters match  -> FULLY mixed
+            //   - some daughters match  -> PARTIAL  (only the matching species is mixed)
+            //   - no daughter matches   -> NOT mixed (event-mixing settings do not apply)
+            fprintf(stderr, "\n=== Event mixing summary (mix_pdg=%d, buffer=%d, 9 centrality bins) ===\n",
+                   em_mix_pdg, em_buffer_size);
+            for (const auto& decay : decays) {
+                const int n_daughters = decay.GetNDaughters();
+                int n_match = 0;
+                for (const auto& daughter : decay.GetDaughters()) {
+                    const auto& pids = daughter.GetPids();
+                    if (std::find(pids.begin(), pids.end(), em_mix_pdg) != pids.end())
+                        ++n_match;
+                }
+                const char* status;
+                if (n_match == 0) {
+                    status = "NOT mixed";
+                    fprintf(stderr, "WARNING: event-mixing settings do not apply to mother '%s' "
+                            "(no daughter PDG matches mix_pdg=%d; no mixed background will be produced for it).\n",
+                            decay.GetName().c_str(), em_mix_pdg);
+                } else if (n_match < n_daughters) {
+                    status = "PARTIAL";
+                    fprintf(stderr, "WARNING: mother '%s' mixed background is only a partially mixed sample "
+                            "(%d/%d daughters match mix_pdg=%d). A fully mixed implementation is not yet ready.\n",
+                            decay.GetName().c_str(), n_match, n_daughters, em_mix_pdg);
+                } else {
+                    status = "FULLY mixed";
+                }
+                fprintf(stderr, "  %-20s : %s (%d/%d daughters match mix_pdg=%d)\n",
+                       decay.GetName().c_str(), status, n_match, n_daughters, em_mix_pdg);
+            }
+            fprintf(stderr, "===\n\n");
+        }
     }
 
     std::vector<AnalysisTree::SimpleCut> vec_output_cuts = {};
