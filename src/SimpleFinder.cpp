@@ -694,6 +694,12 @@ void SimpleFinder::FindMixedBackground() {
     case InputContainer::CentSrc::kNTacks:
       cent_bin = CentralityNTacks(current_n_good_tracks_);
       break;
+    case InputContainer::CentSrc::kFixed8:
+      // AFKF's actual behavior for non-"aTree" inputs: fCentrality is hard-coded
+      // to 8 at the start of every event, so the mixing buffer is never binned by
+      // track count. All events mix within the single (bin-8) buffer.
+      cent_bin = 8;
+      break;
     case InputContainer::CentSrc::kNone:
     default:
       cent_bin = 0;

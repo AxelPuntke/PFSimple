@@ -210,11 +210,15 @@ int main(int argc, char** argv) {
         pf_task->SetMixBufferSize(em_buffer_size);
 
         // Centrality source for event-mixing bin selection (mirrors AFKF's
-        // tree-name-dependent behavior): "field" (default), "ntracks", or "none".
+        // tree-name-dependent behavior): "field" (default), "ntracks", "fixed8", or "none".
+        // "fixed8" matches AFKF's actual behavior for non-"aTree" inputs (rTree, aTree2):
+        // AFKF hard-codes fCentrality=8 at the start of every event, so its mixing
+        // buffer is never binned by track count.
         std::string em_cent_src = em_cfg.value("centrality_source", std::string("field"));
         InputContainer::CentSrc cent_src = InputContainer::CentSrc::kField;
         if (em_cent_src == "field")       cent_src = InputContainer::CentSrc::kField;
         else if (em_cent_src == "ntracks") cent_src = InputContainer::CentSrc::kNTacks;
+        else if (em_cent_src == "fixed8")  cent_src = InputContainer::CentSrc::kFixed8;
         else if (em_cent_src == "none")    cent_src = InputContainer::CentSrc::kNone;
         else {
             fprintf(stderr, "WARNING: unknown event_mixing.centrality_source '%s'; defaulting to 'field'.\n",

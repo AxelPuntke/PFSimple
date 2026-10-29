@@ -43,11 +43,16 @@ class InputContainer {
   const std::vector<KFParticle>& GetTracks() const { return tracks_; };
 
   ///< Source of the event centrality used for event-mixing bin selection.
-  ///  kNone   : no centrality binning (all events share a single buffer)
-  ///  kField  : read the `centrality_tracks` (or configured) field from the event header
-  ///  kNTacks : use the number of good tracks in the event (mirrors AFKF's
-  ///            `Centrality(n_tracks)` fallback for non-"aTree" inputs)
-  enum class CentSrc { kNone, kField, kNTacks };
+  ///  kNone    : no centrality binning (all events share a single buffer)
+  ///  kField   : read the `centrality_tracks` (or configured) field from the event header
+  ///  kNTacks  : use the number of good tracks in the event, binned with the
+  ///             `Centrality(n_tracks)` table (informational; not what AFKF does)
+  ///  kFixed8  : always use centrality bin 8 (most central). Mirrors AFKF's actual
+  ///             behavior for non-"aTree" inputs: AFKF hard-codes `fCentrality = 8`
+  ///             at the start of every event when `at_tree != "aTree"`, so its
+  ///             mixing buffer is never binned by track count. Use this for the
+  ///             `rTree`/`aTree2` xcheck to match AFKF's background.
+  enum class CentSrc { kNone, kField, kNTacks, kFixed8 };
 
   ///< Set the event centrality (e.g. from the event header `centrality_tracks`).
   ///< Used to select the event-mixing buffer bin. Defaults to 0 (no centrality info).
