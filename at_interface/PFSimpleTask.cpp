@@ -9,6 +9,9 @@ void PFSimpleTask::Init() {
   pf_simple_->SetIsEventMixing(is_event_mixing_);
   pf_simple_->SetMixPdg(mix_pdg_);
   pf_simple_->SetMixBufferSize(mix_buffer_size_);
+  pf_simple_->SetCentralitySource(centrality_source_);
+  in_task_->SetCentralitySource(centrality_source_);
+  in_task_->SetCentralityFieldName(centrality_field_name_);
 }
 
 void PFSimpleTask::Exec() {

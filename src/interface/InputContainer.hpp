@@ -42,10 +42,25 @@ class InputContainer {
   const KFVertex& GetVertex() const { return vtx_; };
   const std::vector<KFParticle>& GetTracks() const { return tracks_; };
 
+  ///< Source of the event centrality used for event-mixing bin selection.
+  ///  kNone   : no centrality binning (all events share a single buffer)
+  ///  kField  : read the `centrality_tracks` (or configured) field from the event header
+  ///  kNTacks : use the number of good tracks in the event (mirrors AFKF's
+  ///            `Centrality(n_tracks)` fallback for non-"aTree" inputs)
+  enum class CentSrc { kNone, kField, kNTacks };
+
   ///< Set the event centrality (e.g. from the event header `centrality_tracks`).
   ///< Used to select the event-mixing buffer bin. Defaults to 0 (no centrality info).
   void SetCentrality(float centrality) { centrality_ = centrality; }
   float GetCentrality() const { return centrality_; }
+
+  ///< Number of good tracks in the event (for the `kNTacks` centrality source).
+  void SetNGoodTracks(int n) { n_good_tracks_ = n; }
+  int GetNGoodTracks() const { return n_good_tracks_; }
+
+  ///< Select the event-mixing centrality source (see `CentSrc`).
+  void SetCentralitySource(CentSrc src) { centrality_source_ = src; }
+  CentSrc GetCentralitySource() const { return centrality_source_; }
 
   void Clear() {
     if (!tracks_.empty()) {
@@ -59,6 +74,8 @@ class InputContainer {
   KFVertex vtx_;
   std::vector<KFParticle> tracks_{};
   float centrality_{0.f};///< event centrality (for event-mixing bin selection)
+  int n_good_tracks_{0};///< good-track count (for kNTacks centrality source)
+  CentSrc centrality_source_{CentSrc::kField};
 };
 
 #endif//InputContainer_H

@@ -141,7 +141,9 @@ void ConverterIn::Init() {
   // Optional event centrality (used for event-mixing bin selection, as in AFKF).
   // Field::Init only warns (does not throw) when the field is absent, so it is safe
   // to request it unconditionally; we guard the read with the field id.
-  centrality_tracks_field_ = rec_event_header_.GetField("centrality_tracks");
+  // The field name is configurable (default "centrality_tracks") to accommodate
+  // different AT preprocessing variants (aTree, aTree2, rTree, etc.).
+  centrality_tracks_field_ = rec_event_header_.GetField(centrality_field_name_);
 
   tx_field_ = kf_tracks_.GetField("tx");
   ty_field_ = kf_tracks_.GetField("ty");
@@ -172,7 +174,11 @@ void ConverterIn::Exec() {
                    rec_event_header_[0][vtx_z_field_]);
 
   // Pass the event centrality through to the finder (for event-mixing bin selection).
-  if (centrality_tracks_field_.GetFieldId() != AnalysisTree::UndefValueInt)
+  // The source is configurable (field / ntracks / none) to mirror AFKF's
+  // tree-name-dependent behavior.
+  container_.SetCentralitySource(centrality_source_);
+  if (centrality_source_ == InputContainer::CentSrc::kField
+      && centrality_tracks_field_.GetFieldId() != AnalysisTree::UndefValueInt)
     container_.SetCentrality(rec_event_header_[0][centrality_tracks_field_]);
   else
     container_.SetCentrality(0.f);
@@ -186,6 +192,7 @@ void ConverterIn::Exec() {
     FillParticle(rec_track);
     n_good_tracks++;
   }
+  container_.SetNGoodTracks(n_good_tracks);
 }
 
 std::vector<float> ConverterIn::GetCovMatrixCbm(const AnalysisTree::BranchChannel& particle) const {

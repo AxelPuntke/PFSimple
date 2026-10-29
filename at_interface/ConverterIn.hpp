@@ -40,6 +40,11 @@ class ConverterIn : public AnalysisTree::Task {
   void SetSimTracksName(const std::string& name) { sim_tracks_name_ = name; }
 
   void SetMcInfoAvailable(bool mc_info_available = true) { mc_info_available_ = mc_info_available; }
+
+  ///< Select the event-mixing centrality source (mirrors AFKF's tree-name-dependent behavior).
+  void SetCentralitySource(InputContainer::CentSrc src) { centrality_source_ = src; }
+  ///< Name of the event-header field holding the centrality value (default "centrality_tracks").
+  void SetCentralityFieldName(const std::string& name) { centrality_field_name_ = name; }
   /// Optional minimum MC-match weight for pid_mode 1 (default 0 = no threshold).
   /// When > 0, tracks without a good MC match (weight >= threshold) are dropped,
   /// replicating AFKF's track selection. Used only for the AFKF comparison.
@@ -135,6 +140,8 @@ class ConverterIn : public AnalysisTree::Task {
   AnalysisTree::Field vtx_z_field_;
 
   AnalysisTree::Field centrality_tracks_field_{};///< event centrality (for event-mixing bin selection)
+  std::string centrality_field_name_{"centrality_tracks"};///< configurable name of the centrality field
+  InputContainer::CentSrc centrality_source_{InputContainer::CentSrc::kField};
 
   AnalysisTree::Field tx_field_;
   AnalysisTree::Field ty_field_;

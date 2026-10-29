@@ -68,6 +68,8 @@ class SimpleFinder {
   void SetMixPdg(int pdg) { mix_pdg_ = pdg; }
   ///< Number of previous events whose tracks are combined with the current event to estimate the background.
   void SetMixBufferSize(int n) { mix_buffer_size_ = n; }
+  ///< Select the event-mixing centrality source (mirrors AFKF's tree-name-dependent behavior).
+  void SetCentralitySource(InputContainer::CentSrc src) { centrality_source_ = src; }
   ///< Background candidates obtained by combining tracks from different events (event mixing).
   const std::vector<OutputContainer>& GetMixedCandidates() const { return mixed_output_; }
 
@@ -100,6 +102,8 @@ class SimpleFinder {
   ///< An event only mixes with the last `mix_buffer_size_` events of the *same* bin.
   std::deque<MixEvent> mixed_events_buffer_[kMixCentralityBins];
   float current_centrality_{0.f};///< centrality of the current event (for bin selection)
+  int current_n_good_tracks_{0};///< good-track count of the current event (for kNTacks bin selection)
+  InputContainer::CentSrc centrality_source_{InputContainer::CentSrc::kField};
   bool is_event_mixing_{false};
   int mix_pdg_{-211};///< PDG of the track species replaced by tracks from previous events
   int mix_buffer_size_{5};///< number of previous events kept in the mixing buffer (per bin)
@@ -147,6 +151,9 @@ class SimpleFinder {
   ///< Map an event `centrality_tracks` value to a 0-8 centrality bin (mirrors AFKF's
   ///< `Centrality_AT` with `centFull[9] = {80,70,60,50,40,30,20,10,5}`).
   static int CentralityAT(float gRefMult);
+  ///< Map a good-track count to a 0-8 centrality bin (mirrors AFKF's
+  ///< `Centrality(n_tracks)` with `centFull[9] = {6,12,22,38,62,95,145,212,257}`).
+  static int CentralityNTacks(int nTracks);
 
   bool ApplyNonLinearCut() const {
     return ml_cuts_ == nullptr || ml_cuts_->ApplyCut(values_);

@@ -208,6 +208,22 @@ int main(int argc, char** argv) {
         pf_task->SetIsEventMixing(em_enabled);
         pf_task->SetMixPdg(em_mix_pdg);
         pf_task->SetMixBufferSize(em_buffer_size);
+
+        // Centrality source for event-mixing bin selection (mirrors AFKF's
+        // tree-name-dependent behavior): "field" (default), "ntracks", or "none".
+        std::string em_cent_src = em_cfg.value("centrality_source", std::string("field"));
+        InputContainer::CentSrc cent_src = InputContainer::CentSrc::kField;
+        if (em_cent_src == "field")       cent_src = InputContainer::CentSrc::kField;
+        else if (em_cent_src == "ntracks") cent_src = InputContainer::CentSrc::kNTacks;
+        else if (em_cent_src == "none")    cent_src = InputContainer::CentSrc::kNone;
+        else {
+            fprintf(stderr, "WARNING: unknown event_mixing.centrality_source '%s'; defaulting to 'field'.\n",
+                    em_cent_src.c_str());
+            cent_src = InputContainer::CentSrc::kField;
+        }
+        pf_task->SetCentralitySource(cent_src);
+        if (em_cfg.contains("centrality_field_name"))
+            pf_task->SetCentralityFieldName(em_cfg["centrality_field_name"].get<std::string>());
         out_converter->SetIsWriteEventMixing(em_enabled);
         if (em_cfg.contains("branchname"))
             out_converter->SetMixedCandidatesBranchName(em_cfg["branchname"].get<std::string>());

@@ -25,6 +25,8 @@ void SimpleFinder::Init(const InputContainer& input) {// TODO know how to de-con
   std::vector<KFParticle> tracks = input.GetTracks();
   Init(std::move(tracks), input.GetVertex());
   current_centrality_ = input.GetCentrality();
+  current_n_good_tracks_ = input.GetNGoodTracks();
+  centrality_source_ = input.GetCentralitySource();
 }
 
 int SimpleFinder::CentralityAT(float gRefMult) {
@@ -41,6 +43,24 @@ int SimpleFinder::CentralityAT(float gRefMult) {
   else if (gRefMult <= centFull[2]) centrality = 2;
   else if (gRefMult <= centFull[1]) centrality = 1;
   else if (gRefMult <= centFull[0]) centrality = 0;
+  else centrality = -1;
+  return (centrality < 0 || centrality > 8) ? 0 : centrality;
+}
+
+int SimpleFinder::CentralityNTacks(int nTracks) {
+  // Mirrors AFKF's Centrality(n_tracks) with centFull[9] = {6,12,22,38,62,95,145,212,257}.
+  // Bin 8 = most central (highest track count), bin 0 = most peripheral.
+  static const int centFull[kMixCentralityBins] = {6, 12, 22, 38, 62, 95, 145, 212, 257};
+  int centrality;
+  if (nTracks >= centFull[8]) centrality = 8;
+  else if (nTracks >= centFull[7]) centrality = 7;
+  else if (nTracks >= centFull[6]) centrality = 6;
+  else if (nTracks >= centFull[5]) centrality = 5;
+  else if (nTracks >= centFull[4]) centrality = 4;
+  else if (nTracks >= centFull[3]) centrality = 3;
+  else if (nTracks >= centFull[2]) centrality = 2;
+  else if (nTracks >= centFull[1]) centrality = 1;
+  else if (nTracks >= centFull[0]) centrality = 0;
   else centrality = -1;
   return (centrality < 0 || centrality > 8) ? 0 : centrality;
 }
@@ -666,7 +686,19 @@ void SimpleFinder::FindMixedBackground() {
   // Select the event-mixing bin for the current event (mirrors AFKF's
   // centrality-binned buffer). Events only mix with the last `mix_buffer_size_`
   // events of the *same* centrality bin.
-  int cent_bin = CentralityAT(current_centrality_);
+  int cent_bin;
+  switch (centrality_source_) {
+    case InputContainer::CentSrc::kField:
+      cent_bin = CentralityAT(current_centrality_);
+      break;
+    case InputContainer::CentSrc::kNTacks:
+      cent_bin = CentralityNTacks(current_n_good_tracks_);
+      break;
+    case InputContainer::CentSrc::kNone:
+    default:
+      cent_bin = 0;
+      break;
+  }
   if (cent_bin < 0 || cent_bin >= kMixCentralityBins) cent_bin = 0;
   auto& buffer = mixed_events_buffer_[cent_bin];
 

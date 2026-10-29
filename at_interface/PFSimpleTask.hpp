@@ -28,6 +28,10 @@ class PFSimpleTask : public AnalysisTree::Task {
   void SetMixPdg(int pdg) { mix_pdg_ = pdg; }
   ///< Number of previous events whose tracks are combined with the current event to estimate the background.
   void SetMixBufferSize(int n) { mix_buffer_size_ = n; }
+  ///< Select the event-mixing centrality source (mirrors AFKF's tree-name-dependent behavior).
+  void SetCentralitySource(InputContainer::CentSrc src) { centrality_source_ = src; }
+  ///< Name of the event-header field holding the centrality value (default "centrality_tracks").
+  void SetCentralityFieldName(const std::string& name) { centrality_field_name_ = name; }
   ///< Background candidates obtained by combining tracks from different events.
   const std::vector<OutputContainer>& GetMixedCandidates() const;
 
@@ -38,6 +42,8 @@ class PFSimpleTask : public AnalysisTree::Task {
   bool is_event_mixing_{false};
   int mix_pdg_{-211};
   int mix_buffer_size_{5};
+  InputContainer::CentSrc centrality_source_{InputContainer::CentSrc::kField};
+  std::string centrality_field_name_{"centrality_tracks"};
 };
 
 #endif//KFPARTICLESIMPLE_ANALYSISTREEINTERFACE_PFSIMPLETASK_H_
