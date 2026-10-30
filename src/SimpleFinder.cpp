@@ -196,18 +196,14 @@ KFParticleSIMD SimpleFinder::ConstructMother(const std::vector<KFParticle>& trac
 }
 
 float SimpleFinder::CalculateChiToPrimaryVertex(const KFParticle& track, Pdg_t pid) const {
-  // SIMD'ized version
+  // Match AFKF ComputeChiToVertex (ATKFParticleFinder.cxx) exactly: construct a scalar
+  // KFParticle from the track under the given PDG hypothesis and call
+  // GetDeviationFromVertex once on the PV.  AFKF does a single transport inside
+  // GetDeviationFromVertex; the previous SIMD path added an extra TransportToPoint
+  // (and a SIMD round-trip) that lowered chi2_prim and undercounted secondary tracks.
   KFParticle tmpPart = track;
-  tmpPart.SetPDG(pid);
-  KFParticleSIMD tmpPartSIMD(tmpPart);
-
-  KFVertex prim_vx_tmp = prim_vx_;
-  const KFParticleSIMD prim_vx_Simd(prim_vx_tmp);
-  const float_v point[3] = {prim_vx_Simd.X(), prim_vx_Simd.Y(), prim_vx_Simd.Z()};
-  tmpPartSIMD.TransportToPoint(point);
-
-  float_v chi2vec = tmpPartSIMD.GetDeviationFromVertex(prim_vx_Simd);
-  return chi2vec[0];
+  SetKFParticleEnergy(tmpPart, pid);  // KFParticle(ToKFPTrack(particle), pid) -- same as AFKF
+  return tmpPart.GetDeviationFromVertex(prim_vx_);
 }
 
 float SimpleFinder::CalculateInvMassDiscrepancy(const KFParticle& track, const Mother& mother) const {
@@ -226,6 +222,21 @@ std::vector<int> SimpleFinder::GetGoodDaughtersIndexes(const Daughter& daughter)
         auto track = GetTrack(i_track);
         if (IsGoodDaughter(track, daughter)) {
           result.emplace_back(i_track);
+        }
+      }
+    }
+  }
+  // Accept nuclear fragments (|pdg|>=1e9) as proton-hypothesis positive daughters, mirroring
+  // AFKF's Find2DaughterDecay active[1] (posPDG>1e9).  Fragments are always secondary, so
+  // they bypass the chi2prim>=cut gate (see IsGoodDaughter is_fragment).
+  if (std::abs(daughter.GetPdgHypo()) == 2212) {
+    for (const auto& kv : indexes_) {
+      if (std::abs(kv.first) > 1000000000) {
+        for (auto i_track : kv.second) {
+          auto track = GetTrack(i_track);
+          if (IsGoodDaughter(track, daughter, true)) {
+            result.emplace_back(i_track);
+          }
         }
       }
     }
@@ -275,14 +286,23 @@ void SimpleFinder::SetKFParticleEnergy(KFParticle& particle, int pdg) const {
   particle = KFParticle(track, pdg);
 }
 
-bool SimpleFinder::IsGoodDaughter(const KFParticle& track, const Daughter& daughter) {
+bool SimpleFinder::IsGoodDaughter(const KFParticle& track, const Daughter& daughter, bool is_fragment) {
   int id = daughter.GetId();
   values_.chi2_prim.at(id) = CalculateChiToPrimaryVertex(track, daughter.GetPdgHypo());
 
-  if (values_.chi2_prim.at(id) < daughter.GetCutChi2Prim() || std::isnan(values_.chi2_prim.at(id))) { return false; }
+  // AFKF: for |pdg|>=1e9 (fragments) fChiPrimaryCutFragments=0.0, so a fragment is always
+  // secondary (pv_index=-1) regardless of chi_primary; only gate is chi_primary>0.0.
+  // Ordinary particles must be secondary, i.e. chi_primary >= cut (chi2prim=5.0).
+  if (is_fragment) {
+    if (values_.chi2_prim.at(id) <= 0.0f || std::isnan(values_.chi2_prim.at(id))) { return false; }
+  } else if (values_.chi2_prim.at(id) < daughter.GetCutChi2Prim() || std::isnan(values_.chi2_prim.at(id))) { return false; }
 
   if (!(track.Id() > last_track_id_)) {
-    if (TMath::Abs(daughter.GetPdgHypo()) == 3112 || TMath::Abs(daughter.GetPdgHypo()) == 3312 || TMath::Abs(daughter.GetPdgHypo()) == 3334 || TMath::Abs(daughter.GetPdgHypo()) == 11 || TMath::Abs(daughter.GetPdgHypo()) == 13) {
+    if (is_fragment) {
+      // AFKF accepts nuclear fragments as positive daughters; He3/He4 carry Q=+2 (charge doubled
+      // later in ReconstructDecay).  Only require positive charge here.
+      if (track.Q() <= 0) { return false; }
+    } else if (TMath::Abs(daughter.GetPdgHypo()) == 3112 || TMath::Abs(daughter.GetPdgHypo()) == 3312 || TMath::Abs(daughter.GetPdgHypo()) == 3334 || TMath::Abs(daughter.GetPdgHypo()) == 11 || TMath::Abs(daughter.GetPdgHypo()) == 13) {
       if ((TMath::Sign(1, daughter.GetPdgHypo()) > 0 && track.Q() != -1) || (TMath::Sign(1, daughter.GetPdgHypo()) < 0 && track.Q() != +1)) { return false; }
     } else {
       if ((TMath::Sign(1, daughter.GetPdgHypo()) > 0 && track.Q() != +1) || (TMath::Sign(1, daughter.GetPdgHypo()) < 0 && track.Q() != -1)) { return false; }
@@ -593,7 +613,8 @@ void SimpleFinder::ReconstructDecay(const Decay& decay) {
 
     for (auto index_2 : indexes.at(1)) {
       track.at(1) = GetTrack(index_2);
-      if (std::abs(pdgs.at(1)) == 1000020030 || std::abs(pdgs.at(1)) == 1000020040) {
+      if (std::abs(pdgs.at(1)) == 1000020030 || std::abs(pdgs.at(1)) == 1000020040
+          || std::abs(track.at(1).GetPDG()) == 1000020030 || std::abs(track.at(1).GetPDG()) == 1000020040) {
         int charge = (int) track.at(1).Q();
         charge *= 2;
         track.at(1).Q() = charge;
@@ -729,9 +750,8 @@ void SimpleFinder::FindMixedBackground() {
       mixed_tracks.push_back(track);
   }
   for (const MixEvent& mix_event : buffer) {
-    for (const KFParticle& mix_track : mix_event.mix_tracks) {
+    for (const KFParticle& mix_track : mix_event.mix_tracks)
       mixed_tracks.push_back(TranslateMixTrack(mix_track, mix_event.pv, prim_vx_));
-    }
   }
 
   // Re-id contiguously so that the generation boundary (last_track_id_) marks all

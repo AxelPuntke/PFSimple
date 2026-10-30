@@ -116,7 +116,7 @@ class SimpleFinder {
   */
   std::vector<int> GetGoodDaughtersIndexes(const Daughter& cuts);
 
-  bool IsGoodDaughter(const KFParticle& track, const Daughter& cuts);
+  bool IsGoodDaughter(const KFParticle& track, const Daughter& cuts, bool is_fragment = false);
   bool IsGoodPair(const KFParticle& track1, const KFParticle& track2, const Decay& decay);
   bool IsGoodThree(const KFParticle& track1, const KFParticle& track2, const KFParticle& track3, const Decay& decay);
   bool IsGoodMother(const KFParticleSIMD& mother, const Mother& cuts, int id_mother);
