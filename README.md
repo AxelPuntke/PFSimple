@@ -39,6 +39,19 @@ To build AnalysisTree automatically together with PFSimple use following cmake k
 -DPFSimple_BUNDLED_AT=ON
 -DPFSimple_BUNDLED_AT_VERSION=v2.3.4
 ```
+
+To patch the bundled KFParticle so that it is built **without** `-ffast-math`
+(independent of the chosen build type), add:
+```
+-DPFSimple_KFParticle_NO_FAST_MATH=ON
+```
+This is **OFF by default**, so by default KFParticle is built exactly as upstream
+(with whatever flags its own CMakeLists.txt picks for the build type, including
+`-ffast-math` for a `Release` build). It is only needed when PFSimple must
+reproduce the numerical results of a reference build that was compiled without
+`-ffast-math` (e.g. when cross-checking against the `afkf` package). The patch is
+applied to the KFParticle source at configure time, so enable it once and build
+from scratch (or remove the KFParticle sub-build) for it to take effect.
     
 You need to source root and export AnalysisTree each time when you are compiling project from 0 (perform cmake command) but have no need to do it when just recompiling project (perform just make).
     
