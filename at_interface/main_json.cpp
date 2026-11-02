@@ -191,6 +191,11 @@ int main(int argc, char** argv) {
     // Optionally accept nuclear fragments (|pdg|>=1e9, e.g. He3/He4) as proton-hypothesis positive
     // daughters, mirroring AFKF's Find2DaughterDecay (default OFF = standard PFSimple behaviour).
     pf_task->SetAcceptFragments(config.value("accept_fragments", false));
+    // AFKF-style scalar chi2-to-primary-vertex computation (top-level option, default OFF = legacy SIMD path).
+    // Needed to reproduce AFKF's ComputeChiToVertex exactly in the one-off AFKF-vs-PFSimple background
+    // comparison. When ON, the legacy SIMD path (which adds an extra TransportToPoint) is replaced by
+    // the scalar KFParticle(ToKFPTrack(track), pdg).GetDeviationFromVertex(pv).
+    pf_task->SetChi2PrimAfkf(config.value("chi2_prim_afkf", false));
 
     auto* out_converter = new ConverterOut();
     man->SetOutputName(output_file, "pTree");

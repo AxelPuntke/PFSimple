@@ -196,7 +196,18 @@ KFParticleSIMD SimpleFinder::ConstructMother(const std::vector<KFParticle>& trac
 }
 
 float SimpleFinder::CalculateChiToPrimaryVertex(const KFParticle& track, Pdg_t pid) const {
-  // SIMD'ized version
+  if (chi2_prim_afkf_) {
+    // Match AFKF ComputeChiToVertex (ATKFParticleFinder.cxx) exactly: construct a scalar
+    // KFParticle from the track under the given PDG hypothesis and call
+    // GetDeviationFromVertex once on the PV.  AFKF does a single transport inside
+    // GetDeviationFromVertex; the previous SIMD path added an extra TransportToPoint
+    // (and a SIMD round-trip) that lowered chi2_prim and undercounted secondary tracks.
+    KFParticle tmpPart = track;
+    SetKFParticleEnergy(tmpPart, pid);  // KFParticle(ToKFPTrack(particle), pid) -- same as AFKF
+    return tmpPart.GetDeviationFromVertex(prim_vx_);
+  }
+
+  // Default (pre-AFKF) behavior: SIMD'ized path with an explicit TransportToPoint.
   KFParticle tmpPart = track;
   tmpPart.SetPDG(pid);
   KFParticleSIMD tmpPartSIMD(tmpPart);

@@ -72,6 +72,8 @@ class SimpleFinder {
   void SetCentralitySource(InputContainer::CentSrc src) { centrality_source_ = src; }
   ///< Accept nuclear fragments (|pdg|>=1e9) as proton-hypothesis positive daughters (default OFF).
   void SetAcceptFragments(bool value = true) { accept_fragments_ = value; }
+  ///< Use the AFKF-style scalar chi2-to-primary-vertex computation (default OFF = legacy SIMD path).
+  void SetChi2PrimAfkf(bool value = true) { chi2_prim_afkf_ = value; }
   ///< Background candidates obtained by combining tracks from different events (event mixing).
   const std::vector<OutputContainer>& GetMixedCandidates() const { return mixed_output_; }
 
@@ -111,6 +113,7 @@ class SimpleFinder {
   int mix_buffer_size_{5};///< number of previous events kept in the mixing buffer (per bin)
   bool is_mixed_pass_{false};
   bool accept_fragments_{false};///< accept nuclear fragments (|pdg|>=1e9) as proton-hypothesis positive daughters (default OFF)
+  bool chi2_prim_afkf_{false};///< use AFKF-style scalar chi2-to-primary-vertex computation (default OFF = legacy SIMD path)
 
   /**
   * Find indexes of good daughters

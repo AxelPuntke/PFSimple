@@ -35,6 +35,7 @@
     },
     "pid_mode" : 1,
     "accept_fragments" : true,
+    "chi2_prim_afkf" : true,
     "decays" : [
         {
             "mother" : {
