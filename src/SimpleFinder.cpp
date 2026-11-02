@@ -196,18 +196,7 @@ KFParticleSIMD SimpleFinder::ConstructMother(const std::vector<KFParticle>& trac
 }
 
 float SimpleFinder::CalculateChiToPrimaryVertex(const KFParticle& track, Pdg_t pid) const {
-  if (chi2_prim_afkf_) {
-    // Match AFKF ComputeChiToVertex (ATKFParticleFinder.cxx) exactly: construct a scalar
-    // KFParticle from the track under the given PDG hypothesis and call
-    // GetDeviationFromVertex once on the PV.  AFKF does a single transport inside
-    // GetDeviationFromVertex; the previous SIMD path added an extra TransportToPoint
-    // (and a SIMD round-trip) that lowered chi2_prim and undercounted secondary tracks.
-    KFParticle tmpPart = track;
-    SetKFParticleEnergy(tmpPart, pid);  // KFParticle(ToKFPTrack(particle), pid) -- same as AFKF
-    return tmpPart.GetDeviationFromVertex(prim_vx_);
-  }
-
-  // Default (pre-AFKF) behavior: SIMD'ized path with an explicit TransportToPoint.
+  // SIMD'ized version
   KFParticle tmpPart = track;
   tmpPart.SetPDG(pid);
   KFParticleSIMD tmpPartSIMD(tmpPart);
@@ -241,10 +230,10 @@ std::vector<int> SimpleFinder::GetGoodDaughtersIndexes(const Daughter& daughter)
       }
     }
   }
-  // Accept nuclear fragments (|pdg|>=1e9) as proton-hypothesis positive daughters, mirroring
-  // AFKF's Find2DaughterDecay active[1] (posPDG>1e9).  Fragments are always secondary, so
-  // they bypass the chi2prim>=cut gate (see IsGoodDaughter is_fragment).
-  if (std::abs(daughter.GetPdgHypo()) == 2212) {
+  // Optionally accept nuclear fragments (|pdg|>=1e9) as proton-hypothesis positive daughters,
+  // mirroring AFKF's Find2DaughterDecay active[1] (posPDG>1e9).  Fragments are always secondary,
+  // so they bypass the chi2prim>=cut gate (see IsGoodDaughter is_fragment).  Off by default.
+  if (accept_fragments_ && std::abs(daughter.GetPdgHypo()) == 2212) {
     for (const auto& kv : indexes_) {
       if (std::abs(kv.first) > 1000000000) {
         for (auto i_track : kv.second) {
@@ -629,7 +618,7 @@ void SimpleFinder::ReconstructDecay(const Decay& decay) {
     for (auto index_2 : indexes.at(1)) {
       track.at(1) = GetTrack(index_2);
       if (std::abs(pdgs.at(1)) == 1000020030 || std::abs(pdgs.at(1)) == 1000020040
-          || std::abs(track.at(1).GetPDG()) == 1000020030 || std::abs(track.at(1).GetPDG()) == 1000020040) {
+          || (accept_fragments_ && (std::abs(track.at(1).GetPDG()) == 1000020030 || std::abs(track.at(1).GetPDG()) == 1000020040))) {
         int charge = (int) track.at(1).Q();
         charge *= 2;
         track.at(1).Q() = charge;

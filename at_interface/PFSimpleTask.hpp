@@ -30,8 +30,8 @@ class PFSimpleTask : public AnalysisTree::Task {
   void SetMixBufferSize(int n) { mix_buffer_size_ = n; }
   ///< Select the event-mixing centrality source (mirrors AFKF's tree-name-dependent behavior).
   void SetCentralitySource(InputContainer::CentSrc src) { centrality_source_ = src; }
-  ///< Use the AFKF-style scalar chi2-to-primary-vertex computation (default OFF = legacy SIMD path).
-  void SetChi2PrimAfkf(bool value = true) { chi2_prim_afkf_ = value; }
+  ///< Accept nuclear fragments (|pdg|>=1e9) as proton-hypothesis positive daughters (default OFF).
+  void SetAcceptFragments(bool value = true) { accept_fragments_ = value; }
   ///< Name of the event-header field holding the centrality value (default "centrality_tracks").
   void SetCentralityFieldName(const std::string& name) { centrality_field_name_ = name; }
   ///< Background candidates obtained by combining tracks from different events.
@@ -45,7 +45,7 @@ class PFSimpleTask : public AnalysisTree::Task {
   int mix_pdg_{-211};
   int mix_buffer_size_{5};
   InputContainer::CentSrc centrality_source_{InputContainer::CentSrc::kField};
-  bool chi2_prim_afkf_{false};///< use AFKF-style scalar chi2-to-primary-vertex computation (default OFF = legacy SIMD path)
+  bool accept_fragments_{false};///< accept nuclear fragments (|pdg|>=1e9) as proton-hypothesis positive daughters (default OFF)
   std::string centrality_field_name_{"centrality_tracks"};
 };
 

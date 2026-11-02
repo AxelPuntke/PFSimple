@@ -10,7 +10,7 @@ void PFSimpleTask::Init() {
   pf_simple_->SetMixPdg(mix_pdg_);
   pf_simple_->SetMixBufferSize(mix_buffer_size_);
   pf_simple_->SetCentralitySource(centrality_source_);
-  pf_simple_->SetChi2PrimAfkf(chi2_prim_afkf_);
+  pf_simple_->SetAcceptFragments(accept_fragments_);
   in_task_->SetCentralitySource(centrality_source_);
   in_task_->SetCentralityFieldName(centrality_field_name_);
 }

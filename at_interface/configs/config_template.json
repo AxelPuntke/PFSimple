@@ -9,7 +9,7 @@
     },
     "pid_mode" : number,    // pid_mode: =0: no pid; =1: mc pid; =2: rec pid (default); =3: rec pid (max. purity & purity > min. purity); =4 (purity > min. purity)
                             // for pid_mode 2-4: Pid-framework needs to be applied first!
-    "chi2_prim_afkf" : false, // optional (default false): use AFKF-style scalar chi2-to-PV instead of the legacy SIMD path; only for AFKF-vs-PFSimple comparison
+    "accept_fragments" : false, // optional (default false): accept nuclear fragments (|pdg|>=1e9, e.g. He3/He4) as proton-hypothesis positive daughters, mirroring afkf
     "pid_purity" : {        // this block is only needed in pid_mode > 2
         "default" : purity_value,
         "protons" : purity_value,

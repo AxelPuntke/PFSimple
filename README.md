@@ -121,8 +121,8 @@ Mimimum purities for pid-mode 3 & 4:
 - `default`:  minimum purity is set for all pdgs (pdg-spefic purities need to be omitted) (in pid-mode 3 & 4)
 - `protons`,  `pions`, etc:  minimum purity is set specifically for every pdg (general purity will be overwritten, if pdg-specific purity is given) (in pid-mode 4)
 
-### chi2_prim_afkf
-Optional top-level flag (default: `false`). When set to `true`, the chi2-to-primary-vertex computation is done the way the `afkf` package does it (scalar `KFParticle(ToKFPTrack(track), pdg).GetDeviationFromVertex(pv)`), instead of the default legacy SIMD path. The legacy SIMD path adds an extra `TransportToPoint` that lowers `chi2_prim` and undercounts secondary tracks. This is only needed to reproduce `afkf`'s `ComputeChiToVertex` exactly in a one-off `afkf`-vs-PFSimple comparison; leave it off (`false`, the default) otherwise.
+### accept_fragments
+Optional top-level flag (default: `false`). When set to `true`, nuclear fragments (`|pdg| >= 1e9`, e.g. He3/He4) are accepted as proton-hypothesis positive daughters, mirroring `afkf`'s `Find2DaughterDecay`. Fragments are always secondary, so they bypass the `chi2prim >= cut` gate. This is only needed to reproduce `afkf`'s fragment acceptance in a one-off `afkf`-vs-PFSimple comparison; leave it off (`false`, the default) otherwise.
 
 ### decays
 One or multiple decays get can reconstructed in one run. Each decay is defined by several sub-blocks:
@@ -196,7 +196,7 @@ Several example parameter files can be found in the folder `at_interface/configs
 | `config_omega_pidmode1.json`          | Omega, Lambda      | `1`        | cascade decay                          |
 | `config_omegastar_pidmode1.json`      | Omega*, Xi, Lambda | `1`        | cascade decay, 3-body decay            |
 | `config_lambda_k0short_pidmode1.json` | Lambda, K0Short    | `1`        |                                        |
-| `config_lambda_mix_afkf_xcheck.json`  | Lambda             | `1`        | event mixing, reproduces the `afkf` config `atkf_runtime_config_mix_pion.json` for cross-validation (incl. `mc_match_weight_min: 0.7` to mirror afkf's hardcoded track selection and `chi2_prim_afkf: true` to match afkf's chi2-to-PV) |
+| `config_lambda_mix_afkf_xcheck.json`  | Lambda             | `1`        | event mixing, reproduces the `afkf` config `atkf_runtime_config_mix_pion.json` for cross-validation (incl. `mc_match_weight_min: 0.7` to mirror afkf's hardcoded track selection and `accept_fragments: true` to mirror afkf's fragment acceptance) |
 
 
 
