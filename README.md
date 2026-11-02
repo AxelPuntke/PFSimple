@@ -121,6 +121,9 @@ Mimimum purities for pid-mode 3 & 4:
 - `default`:  minimum purity is set for all pdgs (pdg-spefic purities need to be omitted) (in pid-mode 3 & 4)
 - `protons`,  `pions`, etc:  minimum purity is set specifically for every pdg (general purity will be overwritten, if pdg-specific purity is given) (in pid-mode 4)
 
+### chi2_prim_afkf
+Optional top-level flag (default: `false`). When set to `true`, the chi2-to-primary-vertex computation is done the way the `afkf` package does it (scalar `KFParticle(ToKFPTrack(track), pdg).GetDeviationFromVertex(pv)`), instead of the default legacy SIMD path. The legacy SIMD path adds an extra `TransportToPoint` that lowers `chi2_prim` and undercounts secondary tracks. This is only needed to reproduce `afkf`'s `ComputeChiToVertex` exactly in a one-off `afkf`-vs-PFSimple comparison; leave it off (`false`, the default) otherwise.
+
 ### decays
 One or multiple decays get can reconstructed in one run. Each decay is defined by several sub-blocks:
 
@@ -165,7 +168,6 @@ The optional `event_mixing` block estimates the combinatorial background by reco
 | `mix_pdg`          | PDG of the track species that is replaced by tracks of previous events (default: `-211`, i.e. the pion of the Lambda decay)                                             |
 | `mix_buffer_size`  | Number of previous events kept in the mixing buffer (default: `5`)                                                                                                       |
 | `branchname`       | Optional name of the output branch that stores the mixed-event background candidates (default: `MixedCandidates`)                                                        |
-| `chi2_prim_afkf`   | Optional (default `false`). Use the AFKF-style scalar chi2-to-primary-vertex computation instead of the legacy SIMD path. Only needed to reproduce AFKF's `ComputeChiToVertex` exactly in a one-off AFKF-vs-PFSimple comparison; the legacy SIMD path adds an extra `TransportToPoint` that lowers `chi2_prim` and undercounts secondary tracks. |
 
 For each event, the `mix_pdg` tracks of the current event are discarded and replaced by the `mix_pdg` tracks of the `mix_buffer_size` preceding events, translated to the current primary vertex. The combined track set is re-id'ed to a contiguous range and reconstructed with the same decays as the signal candidates; all candidates built in this pass are combinatorial background. If MC info is available, the `generation` field of the mixed candidates is set to `-1000` to distinguish them from signal candidates.
 
@@ -194,7 +196,7 @@ Several example parameter files can be found in the folder `at_interface/configs
 | `config_omega_pidmode1.json`          | Omega, Lambda      | `1`        | cascade decay                          |
 | `config_omegastar_pidmode1.json`      | Omega*, Xi, Lambda | `1`        | cascade decay, 3-body decay            |
 | `config_lambda_k0short_pidmode1.json` | Lambda, K0Short    | `1`        |                                        |
-| `config_lambda_mix_afkf_xcheck.json`  | Lambda             | `1`        | event mixing, reproduces the `afkf` config `atkf_runtime_config_mix_pion.json` for cross-validation (incl. `mc_match_weight_min: 0.7` to mirror afkf's hardcoded track selection) |
+| `config_lambda_mix_afkf_xcheck.json`  | Lambda             | `1`        | event mixing, reproduces the `afkf` config `atkf_runtime_config_mix_pion.json` for cross-validation (incl. `mc_match_weight_min: 0.7` to mirror afkf's hardcoded track selection and `chi2_prim_afkf: true` to match afkf's chi2-to-PV) |
 
 
 

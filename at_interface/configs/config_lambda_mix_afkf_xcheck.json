@@ -34,6 +34,7 @@
         "save_options": []
     },
     "pid_mode" : 1,
+    "chi2_prim_afkf" : true,
     "decays" : [
         {
             "mother" : {
@@ -61,7 +62,6 @@
         "enabled" : true,
         "mix_pdg" : -211,
         "mix_buffer_size" : 5,
-        "branchname" : "MixedCandidates",
-        "chi2_prim_afkf" : true
+        "branchname" : "MixedCandidates"
     }
 }

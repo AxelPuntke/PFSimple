@@ -9,6 +9,7 @@
     },
     "pid_mode" : number,    // pid_mode: =0: no pid; =1: mc pid; =2: rec pid (default); =3: rec pid (max. purity & purity > min. purity); =4 (purity > min. purity)
                             // for pid_mode 2-4: Pid-framework needs to be applied first!
+    "chi2_prim_afkf" : false, // optional (default false): use AFKF-style scalar chi2-to-PV instead of the legacy SIMD path; only for AFKF-vs-PFSimple comparison
     "pid_purity" : {        // this block is only needed in pid_mode > 2
         "default" : purity_value,
         "protons" : purity_value,
@@ -67,7 +68,6 @@
         "enabled" : true,                    // set to false to disable
         "mix_pdg" : -211,                    // PDG of the track species replaced by tracks from previous events (e.g. -211 for the pion of the Lambda)
         "mix_buffer_size" : 5,               // number of previous events kept in the mixing buffer
-        "branchname" : "MixedCandidates",    // optional: name of the output branch with mixed-event background candidates
-        "chi2_prim_afkf" : false             // optional (default false): use AFKF-style scalar chi2-to-PV instead of the legacy SIMD path; only for AFKF-vs-PFSimple comparison
+        "branchname" : "MixedCandidates"     // optional: name of the output branch with mixed-event background candidates
     }
 }

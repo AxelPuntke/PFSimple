@@ -188,6 +188,11 @@ int main(int argc, char** argv) {
     auto* pf_task = new PFSimpleTask();
     pf_task->SetInTask(in_converter);
     pf_task->SetDecays({decays});
+    // AFKF-style scalar chi2-to-primary-vertex computation (top-level option, default OFF = legacy SIMD path).
+    // Only needed to reproduce AFKF's ComputeChiToVertex exactly in the one-off AFKF-vs-PFSimple
+    // background comparison. When ON, the legacy SIMD path (which adds an extra TransportToPoint)
+    // is replaced by the scalar KFParticle(ToKFPTrack(track), pdg).GetDeviationFromVertex(pv).
+    pf_task->SetChi2PrimAfkf(config.value("chi2_prim_afkf", false));
 
     auto* out_converter = new ConverterOut();
     man->SetOutputName(output_file, "pTree");
@@ -226,11 +231,6 @@ int main(int argc, char** argv) {
             cent_src = InputContainer::CentSrc::kField;
         }
         pf_task->SetCentralitySource(cent_src);
-        // AFKF-style scalar chi2-to-primary-vertex computation (default OFF = legacy SIMD path).
-        // Only needed to reproduce AFKF's ComputeChiToVertex exactly in the one-off AFKF-vs-PFSimple
-        // background comparison. When ON, the legacy SIMD path (which adds an extra TransportToPoint)
-        // is replaced by the scalar KFParticle(ToKFPTrack(track), pdg).GetDeviationFromVertex(pv).
-        pf_task->SetChi2PrimAfkf(em_cfg.value("chi2_prim_afkf", false));
         if (em_cfg.contains("centrality_field_name"))
             pf_task->SetCentralityFieldName(em_cfg["centrality_field_name"].get<std::string>());
         out_converter->SetIsWriteEventMixing(em_enabled);
