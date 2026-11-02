@@ -69,6 +69,8 @@
         "enabled" : true,                    // set to false to disable
         "mix_pdg" : -211,                    // PDG of the track species replaced by tracks from previous events (e.g. -211 for the pion of the Lambda)
         "mix_buffer_size" : 5,               // number of previous events kept in the mixing buffer
-        "branchname" : "MixedCandidates"     // optional: name of the output branch with mixed-event background candidates
+        "branchname" : "MixedCandidates",    // optional: name of the output branch with mixed-event background candidates
+        "centrality_source" : "field",       // source of the centrality used to bin the mixing buffer: "field" (default, read centrality_tracks and bin with {80,70,60,50,40,30,20,10,5}), "ntracks" (bin by good-track count with {6,12,22,38,62,95,145,212,257}), "fixed8" (always bin 8, matches afkf for non-aTree inputs), "none" (single buffer)
+        "centrality_field_name" : "centrality_tracks"   // optional: event-header field holding the centrality value, used when centrality_source is "field"
     }
 }
