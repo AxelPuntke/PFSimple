@@ -165,6 +165,7 @@ The optional `event_mixing` block estimates the combinatorial background by reco
 | `mix_pdg`          | PDG of the track species that is replaced by tracks of previous events (default: `-211`, i.e. the pion of the Lambda decay)                                             |
 | `mix_buffer_size`  | Number of previous events kept in the mixing buffer (default: `5`)                                                                                                       |
 | `branchname`       | Optional name of the output branch that stores the mixed-event background candidates (default: `MixedCandidates`)                                                        |
+| `chi2_prim_afkf`   | Optional (default `false`). Use the AFKF-style scalar chi2-to-primary-vertex computation instead of the legacy SIMD path. Only needed to reproduce AFKF's `ComputeChiToVertex` exactly in a one-off AFKF-vs-PFSimple comparison; the legacy SIMD path adds an extra `TransportToPoint` that lowers `chi2_prim` and undercounts secondary tracks. |
 
 For each event, the `mix_pdg` tracks of the current event are discarded and replaced by the `mix_pdg` tracks of the `mix_buffer_size` preceding events, translated to the current primary vertex. The combined track set is re-id'ed to a contiguous range and reconstructed with the same decays as the signal candidates; all candidates built in this pass are combinatorial background. If MC info is available, the `generation` field of the mixed candidates is set to `-1000` to distinguish them from signal candidates.
 

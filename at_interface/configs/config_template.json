@@ -67,6 +67,7 @@
         "enabled" : true,                    // set to false to disable
         "mix_pdg" : -211,                    // PDG of the track species replaced by tracks from previous events (e.g. -211 for the pion of the Lambda)
         "mix_buffer_size" : 5,               // number of previous events kept in the mixing buffer
-        "branchname" : "MixedCandidates"     // optional: name of the output branch with mixed-event background candidates
+        "branchname" : "MixedCandidates",    // optional: name of the output branch with mixed-event background candidates
+        "chi2_prim_afkf" : false             // optional (default false): use AFKF-style scalar chi2-to-PV instead of the legacy SIMD path; only for AFKF-vs-PFSimple comparison
     }
 }
