@@ -12,6 +12,7 @@
 #include <map>
 #include <vector>
 #include <algorithm>
+#include <cstdlib>
 #include <nlohmann/json.hpp>
 #include <regex>
 
@@ -174,7 +175,8 @@ int main(int argc, char** argv) {
     }
 
     // PID and IO settings
-    auto pid_mode = config["pid_mode"];
+    // pid_mode is read as an int defaulting to 0 (no-PID) when absent or null.
+    auto pid_mode = config.value("pid_mode", 0);
     auto pid_purity_cfg = config["pid_purity"];
 
     in_converter->SetPidMode(pid_mode);
@@ -196,6 +198,10 @@ int main(int argc, char** argv) {
     // comparison. When ON, the legacy SIMD path (which adds an extra TransportToPoint) is replaced by
     // the scalar KFParticle(ToKFPTrack(track), pdg).GetDeviationFromVertex(pv).
     pf_task->SetChi2PrimAfkf(config.value("chi2_prim_afkf", false));
+    // In no-PID mode (pid_mode 0) the track PDG equals the track charge (+/-1, +/-2),
+    // so event mixing must use a charge as mix_pdg, not a hadron PDG code. Propagate
+    // this convention to the finder so it can validate/refuse an inconsistent mix_pdg.
+    pf_task->SetChargeBasedPdg(pid_mode == 0);
 
     auto* out_converter = new ConverterOut();
     man->SetOutputName(output_file, "pTree");
@@ -216,6 +222,21 @@ int main(int argc, char** argv) {
         pf_task->SetIsEventMixing(em_enabled);
         pf_task->SetMixPdg(em_mix_pdg);
         pf_task->SetMixBufferSize(em_buffer_size);
+
+        // Refuse an inconsistent mix_pdg before running. In no-PID mode (pid_mode 0) the
+        // track PDG equals the track charge (+/-1, +/-2), so a hadron PDG code such as
+        // -211 matches no track: FindMixedBackground would remove no current-event tracks,
+        // buffer none, and the "mixed" background would be byte-for-byte identical to the
+        // real background, inheriting its signal peak. Fail loudly instead.
+        if (em_enabled && pid_mode == 0 && std::abs(em_mix_pdg) > 2) {
+            throw std::runtime_error(
+                "event_mixing.mix_pdg = " + std::to_string(em_mix_pdg) +
+                " is invalid in no-PID mode (pid_mode 0): the track PDG equals the track "
+                "charge (+/-1, +/-2), so mix_pdg must be a charge (e.g. -1 for a pi-). "
+                "A hadron PDG code such as -211 matches no track and the 'mixed' background "
+                "would silently equal the real background (inheriting its signal). "
+                "Set event_mixing.mix_pdg to a charge.");
+        }
 
         // Centrality source for event-mixing bin selection (mirrors AFKF's
         // tree-name-dependent behavior): "field" (default), "ntracks", "fixed8", or "none".

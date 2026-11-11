@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <numeric>
 #include <iostream>
+#include <cstdlib>
+#include <stdexcept>
 using std::to_string;
 
 void SimpleFinder::Init(std::vector<KFParticle>&& tracks, const KFVertex& pv) {
@@ -716,8 +718,16 @@ void SimpleFinder::FindMixedBackground() {
   // Track-level event mixing (afkf-style): replace the current event's `mix_pdg`
   // tracks with the `mix_pdg` tracks of previous events, translated to the current PV.
   // Every candidate built in this pass is combinatorial background.
-  if (!IsSupportedTrackPdg(mix_pdg_) || mix_buffer_size_ <= 0)
-    return;
+  if (mix_buffer_size_ <= 0)
+    return;  // mixing disabled via buffer size
+  if (!IsSupportedTrackPdg(mix_pdg_))
+    throw std::runtime_error(
+        "SimpleFinder::FindMixedBackground: mix_pdg = " + std::to_string(mix_pdg_) +
+        " is not a valid track PDG for the configured PID mode. In no-PID mode "
+        "(pid_mode 0) the track PDG equals the track charge (+/-1, +/-2), so "
+        "mix_pdg must be a charge (e.g. -1 for a pi-); a hadron PDG code such as "
+        "-211 matches no track and the 'mixed' background would silently equal the "
+        "real background. Set event_mixing.mix_pdg to a charge (e.g. -1).");
 
   // Select the event-mixing bin for the current event (mirrors AFKF's
   // centrality-binned buffer). Events only mix with the last `mix_buffer_size_`
@@ -818,6 +828,12 @@ KFParticle SimpleFinder::TranslateMixTrack(const KFParticle& track,
 }
 
 bool SimpleFinder::IsSupportedTrackPdg(int pdg) const {
+  if (charge_based_pdg_) {
+    // pid_mode 0 ("no-PID"): the track PDG is set to the track charge (q in
+    // ConverterIn::FillParticle), i.e. +/-1 or +/-2. A hadron PDG code such as
+    // -211 matches no track in this mode, so only charge magnitudes are valid.
+    return std::abs(pdg) == 1 || std::abs(pdg) == 2;
+  }
   switch (std::abs(pdg)) {
     case 1:   // charge-based PDG (pid_mode 0 sets the track PDG to the charge, e.g. -1 for a pion)
     case 11:

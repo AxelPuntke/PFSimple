@@ -68,6 +68,9 @@ class SimpleFinder {
   void SetMixPdg(int pdg) { mix_pdg_ = pdg; }
   ///< Number of previous events whose tracks are combined with the current event to estimate the background.
   void SetMixBufferSize(int n) { mix_buffer_size_ = n; }
+  ///< Whether the input tracks carry charge-based PDG (pid_mode 0, "no-PID"): in that mode the
+  ///< track PDG equals the track charge (+/-1, +/-2), so mix_pdg must be a charge, not a hadron PDG.
+  void SetChargeBasedPdg(bool value = true) { charge_based_pdg_ = value; }
   ///< Select the event-mixing centrality source (mirrors AFKF's tree-name-dependent behavior).
   void SetCentralitySource(InputContainer::CentSrc src) { centrality_source_ = src; }
   ///< Accept nuclear fragments (|pdg|>=1e9) as proton-hypothesis positive daughters (default OFF).
@@ -111,6 +114,7 @@ class SimpleFinder {
   bool is_event_mixing_{false};
   int mix_pdg_{-211};///< PDG of the track species replaced by tracks from previous events
   int mix_buffer_size_{5};///< number of previous events kept in the mixing buffer (per bin)
+  bool charge_based_pdg_{false};///< input tracks carry charge-based PDG (pid_mode 0, "no-PID")
   bool is_mixed_pass_{false};
   bool accept_fragments_{false};///< accept nuclear fragments (|pdg|>=1e9) as proton-hypothesis positive daughters (default OFF)
   bool chi2_prim_afkf_{false};///< use AFKF-style scalar chi2-to-primary-vertex computation (default OFF = legacy SIMD path)
