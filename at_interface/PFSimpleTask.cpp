@@ -3,6 +3,8 @@
 #include "ConverterIn.hpp"
 #include "ConverterOut.hpp"
 
+#include "AnalysisTree/TaskManager.hpp"
+
 void PFSimpleTask::Init() {
   pf_simple_ = new SimpleFinder();
   pf_simple_->SetDecays(decays_);
@@ -18,6 +20,11 @@ void PFSimpleTask::Init() {
 }
 
 void PFSimpleTask::Exec() {
+  // Record the entry number of the current event so the finder can tag mixed
+  // candidates with the source event of each daughter.
+  auto* man = AnalysisTree::TaskManager::GetInstance();
+  auto* chain = man->GetChain();
+  pf_simple_->SetCurrentEventIndex(static_cast<int>(chain->GetReadEntry()));
   pf_simple_->Init(in_task_->GetInputContainer());
   pf_simple_->FindParticles();
 }

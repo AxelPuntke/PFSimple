@@ -504,6 +504,25 @@ void SimpleFinder::SaveParticle(KFParticleSIMD& particle_simd, const Decay& deca
 
   if (is_mixed_pass_) {
     // All candidates built in the mixing pass are combinatorial background.
+    // The daughter IDs in `mother` are indices into the mixed track set; repurpose
+    // them to the daughters' original VtxTracks channel IDs within their source event,
+    // and record the source-event entry so the QA macros can load the correct tracks.
+    std::vector<int> src_ids;
+    std::vector<int> src_events;
+    src_ids.reserve(particle.NDaughters());
+    src_events.reserve(particle.NDaughters());
+    for (int i = 0; i < particle.NDaughters(); ++i) {
+      const int mixed_index = particle.DaughterIds().at(i);
+      if (mixed_index >= 0 && mixed_index < static_cast<int>(mixed_track_sources_.size())) {
+        src_ids.push_back(mixed_track_sources_[mixed_index].vtx_track_id);
+        src_events.push_back(mixed_track_sources_[mixed_index].event_index);
+      } else {
+        src_ids.push_back(-1);
+        src_events.push_back(-1);
+      }
+    }
+    mother.SetDaughterIds(std::move(src_ids));
+    mother.SetDaughterSources(std::move(src_events));
     mixed_output_.emplace_back(mother);
   } else {
     output_.emplace_back(mother);
@@ -769,14 +788,20 @@ void SimpleFinder::FindMixedBackground() {
   // normal pass, so the *input* tracks are taken from the `input_tracks_` snapshot.
   std::vector<KFParticle> mixed_tracks;
   mixed_tracks.reserve(input_tracks_.size());
+  mixed_track_sources_.clear();
+  mixed_track_sources_.reserve(input_tracks_.size());
 
   for (const auto& track : input_tracks_) {
-    if (track.GetPDG() != mix_pdg_)
+    if (track.GetPDG() != mix_pdg_) {
       mixed_tracks.push_back(track);
+      mixed_track_sources_.push_back({current_event_index_, track.Id()});
+    }
   }
   for (const MixEvent& mix_event : buffer) {
-    for (const KFParticle& mix_track : mix_event.mix_tracks)
+    for (const KFParticle& mix_track : mix_event.mix_tracks) {
       mixed_tracks.push_back(TranslateMixTrack(mix_track, mix_event.pv, prim_vx_));
+      mixed_track_sources_.push_back({mix_event.event_index, mix_track.Id()});
+    }
   }
 
   // Re-id contiguously so that the generation boundary (last_track_id_) marks all
@@ -804,6 +829,7 @@ void SimpleFinder::FindMixedBackground() {
   // Buffer the current event's `mix_pdg` tracks for future mixing (ring buffer of
   // size mix_buffer_size_ per centrality bin).
   MixEvent mix_event;
+  mix_event.event_index = current_event_index_;
   mix_event.pv = prim_vx_;
   for (const auto& track : input_tracks_) {
     if (track.GetPDG() == mix_pdg_)

@@ -71,6 +71,10 @@ class SimpleFinder {
   ///< Whether the input tracks carry charge-based PDG (pid_mode 0, "no-PID"): in that mode the
   ///< track PDG equals the track charge (+/-1, +/-2), so mix_pdg must be a charge, not a hadron PDG.
   void SetChargeBasedPdg(bool value = true) { charge_based_pdg_ = value; }
+  ///< Set the entry number (within the input chain) of the event currently being processed.
+  ///< This is written into mixed candidates as the daughters' source-event index so that the
+  ///< downstream QA macros can load the correct event's tracks for each daughter.
+  void SetCurrentEventIndex(int index) { current_event_index_ = index; }
   ///< Select the event-mixing centrality source (mirrors AFKF's tree-name-dependent behavior).
   void SetCentralitySource(InputContainer::CentSrc src) { centrality_source_ = src; }
   ///< Accept nuclear fragments (|pdg|>=1e9) as proton-hypothesis positive daughters (default OFF).
@@ -100,14 +104,25 @@ class SimpleFinder {
 
   // event mixing
   struct MixEvent {
+    int event_index{-1};              ///< entry number of the buffered event (source of `mix_tracks`)
     KFVertex pv;                      ///< primary vertex of the buffered event
     std::vector<KFParticle> mix_tracks;///< input tracks of the buffered event with PDG == mix_pdg_
+  };
+  ///< Source of a single track inside the mixed-track set: which event it came from and what
+  ///< its original VtxTracks channel ID was within that event. Indexed by the mixed-set index.
+  struct MixedTrackSource {
+    int event_index{-1};///< entry number of the source event
+    int vtx_track_id{-1};///< original VtxTracks channel ID within the source event
   };
   ///< Number of centrality bins used for the event-mixing buffer (mirrors AFKF).
   static constexpr int kMixCentralityBins = 9;
   ///< Ring buffers of previous events' mix_pdg tracks, one per centrality bin.
   ///< An event only mixes with the last `mix_buffer_size_` events of the *same* bin.
   std::deque<MixEvent> mixed_events_buffer_[kMixCentralityBins];
+  ///< Per-mixed-set-index source {event, VtxTracks channel} for every track in the current
+  ///< mixed track set. Built in FindMixedBackground, used by SaveParticle (mixed pass).
+  std::vector<MixedTrackSource> mixed_track_sources_;
+  int current_event_index_{-1};///< entry number of the current event (set by PFSimpleTask)
   float current_centrality_{0.f};///< centrality of the current event (for bin selection)
   int current_n_good_tracks_{0};///< good-track count of the current event (for kNTacks bin selection)
   InputContainer::CentSrc centrality_source_{InputContainer::CentSrc::kField};

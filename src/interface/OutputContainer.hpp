@@ -43,6 +43,7 @@ class OutputContainer {
   virtual ~OutputContainer() = default;
 
   [[nodiscard]] const std::vector<int>& GetDaughterIds() const { return daughter_ids_; }
+  [[nodiscard]] const std::vector<int>& GetDaughterSources() const { return daughter_sources_; }
   [[nodiscard]] const std::vector<int>& GetDaughterGenerations() const { return generation_; }
   [[nodiscard]] float GetPx() const { return px_; }
   [[nodiscard]] float GetPy() const { return py_; }
@@ -80,6 +81,8 @@ class OutputContainer {
   [[nodiscard]] bool IsFromPV() const { return values_.is_from_PV; }
 
   void SetId(int id) { id_ = id; }
+  void SetDaughterIds(std::vector<int> ids) { daughter_ids_ = std::move(ids); }
+  void SetDaughterSources(std::vector<int> sources) { daughter_sources_ = std::move(sources); }
   void SetDaughterGenerations(std::vector<int> generation) { generation_ = generation; }
   
   void SetSelectionValues(const SelectionValues& v) { values_ = v; }
@@ -87,6 +90,7 @@ class OutputContainer {
  protected:
   int id_{-1};
   std::vector<int> daughter_ids_{};
+  std::vector<int> daughter_sources_{};
   std::vector<int> generation_{};
 
   float px_{-1.};

@@ -22,7 +22,7 @@ class ConverterOut : public AnalysisTree::Task {
 
   void SetPFSimpleTask(PFSimpleTask* pfsimple_task) { pfsimple_task_ = pfsimple_task; }
 
-  void CopyParticle(const OutputContainer& kf_particle, AnalysisTree::Particle& particle, int const Ndaughters) const;
+  void CopyParticle(const OutputContainer& kf_particle, AnalysisTree::Particle& particle, int const Ndaughters, bool is_mixed = false) const;
   void SetDecays(const std::vector<Decay>& decays) { decays_ = decays; }
   void SetOutputCuts(AnalysisTree::Cuts* output_cuts) { output_cuts_ = output_cuts; }
 
@@ -97,6 +97,7 @@ class ConverterOut : public AnalysisTree::Task {
   int x_field_id_{-1};
   int particle_id_field_id_{-1};
   int daughter_id_field_id_{-1};
+  int daughter_event_field_id_{-1};
   int generation_field_id_{-1};
   int g4process_field_id_{-1};
   int g4process_field_id_w_{-1};

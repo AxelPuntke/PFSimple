@@ -15,7 +15,7 @@ namespace {
 constexpr int kMixedBgGeneration = -1000;
 }// namespace
 
-void ConverterOut::CopyParticle(const OutputContainer& kf_particle, AnalysisTree::Particle& particle, const int Ndaughters) const {
+void ConverterOut::CopyParticle(const OutputContainer& kf_particle, AnalysisTree::Particle& particle, const int Ndaughters, const bool is_mixed) const {
   
   //particle.SetIsAllowedSetMassAndChargeExplicitly(true); //Uncomment when most recent AnalysisTree is installed in cbmroot
   
@@ -41,6 +41,10 @@ void ConverterOut::CopyParticle(const OutputContainer& kf_particle, AnalysisTree
     particle.SetField(kf_particle.GetChi2Prim(i), chi2prim_field_id_ + i);
     particle.SetField(kf_particle.GetCos(i), cosine_field_id_ + i);
     particle.SetField(kf_particle.GetDaughterIds().at(i), daughter_id_field_id_ + i);
+    // For mixed candidates the daughter ID refers to a track of a *source* event (possibly not
+    // the current one); record the source-event entry so the QA macros can load it.
+    if (is_mixed)
+      particle.SetField(kf_particle.GetDaughterSources().at(i), daughter_event_field_id_ + i);
     if(Ndaughters == 3) {
       particle.SetField(kf_particle.GetChi2Geo(i + 1), chi2geo_sm_field_id_ + i);
       particle.SetField(kf_particle.GetCosOpen(i + 1), cosopen_sm_field_id_ + i);
@@ -53,6 +57,8 @@ void ConverterOut::CopyParticle(const OutputContainer& kf_particle, AnalysisTree
     particle.SetField(-999.f, chi2prim_field_id_ + 2);
     particle.SetField(-9.f, cosine_field_id_ + 2);
     particle.SetField(-999, daughter_id_field_id_ + 2);
+    if (is_mixed)
+      particle.SetField(-999, daughter_event_field_id_ + 2);
 
     for (int i = 0; i < Ndaughters_max_; ++i) {
       particle.SetField(-999.f, chi2geo_sm_field_id_ + i);
@@ -134,7 +140,7 @@ void ConverterOut::Exec() {
       const int Ndaughters = candidate.GetDaughterIds().size();
 
       AnalysisTree::Particle particle(mixed_particles_->GetNumberOfChannels(), mixed_br_conf);
-      CopyParticle(candidate, particle, Ndaughters);
+      CopyParticle(candidate, particle, Ndaughters, true);
 
       if (is_write_mc_ == true) {
         // Event-mixed candidates have no true MC mother: mark them as background.
@@ -234,6 +240,14 @@ void ConverterOut::Init() {
   // as the signal candidates (so that the two can be analysed with the same code).
   if (is_write_event_mixing_) {
     AnalysisTree::BranchConfig out_particles_mixed = out_particles.Clone(mixed_branch_name_, AnalysisTree::DetType::kParticle);
+    // For mixed candidates the daughter IDs refer to a track of a *source* event (possibly not
+    // the current one). Store the source-event entry alongside so the QA macros can load the
+    // correct event's tracks/TOF hits for each daughter.
+    if (Ndaughters_max_ == 3) {
+      out_particles_mixed.AddFields<int>({"daughter1_event", "daughter2_event", "daughter3_event"}, "");
+    } else if (Ndaughters_max_ == 2) {
+      out_particles_mixed.AddFields<int>({"daughter1_event", "daughter2_event"}, "");
+    }
     man->AddBranch(mixed_particles_, out_particles_mixed);
   }
   
@@ -337,6 +351,11 @@ void ConverterOut::InitIndexes() {
   daughter_id_field_id_ = out_branch_reco.GetFieldId("daughter1_id");
   particle_id_field_id_ = out_branch_reco.GetFieldId("particle_id");
   pt_err_field_id_ = out_branch_reco.GetFieldId("pT_err");
+
+  if (is_write_event_mixing_) {
+    const auto& out_branch_mixed = out_config->GetBranchConfig(mixed_particles_->GetId());
+    daughter_event_field_id_ = out_branch_mixed.GetFieldId("daughter1_event");
+  }
 
   if (is_write_mc_ == true) {
     auto branch_conf_sim  = config_->GetBranchConfig(mc_particles_name_);
